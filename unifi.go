@@ -2,15 +2,14 @@ package main
 
 import (
 	"context"
+	"strings"
 
 	"github.com/crowdsecurity/crowdsec/pkg/models"
 	"github.com/paultyng/go-unifi/unifi"
 	"github.com/rs/zerolog/log"
 )
 
-func dial() (*unifi.Client, error) {
-	ctx := context.TODO()
-
+func dial(ctx context.Context) (*unifi.Client, error) {
 	client := unifi.Client{}
 	client.SetBaseURL(unifiHost)
 	err := client.Login(ctx, username, password)
@@ -22,11 +21,11 @@ func dial() (*unifi.Client, error) {
 	return &client, nil
 }
 
-func (mal *unifiAddrList) initUnifi() {
+func (mal *unifiAddrList) initUnifi(ctx context.Context) {
 
 	log.Info().Msg("Connecting to unifi")
 
-	c, err := dial()
+	c, err := dial(ctx)
 	if err != nil {
 		log.Fatal().Err(err).Str("host", unifiHost).Str("username", username).Msg("Connection failed")
 	}
@@ -35,69 +34,63 @@ func (mal *unifiAddrList) initUnifi() {
 
 	mal.cache = make(map[string]string)
 
-	protos := []string{"ip"}
+	// TODO: Find correct Site
+	// sites, err := c.ListSites(ctx)
+	// log.Info().Msgf("sites %v", sites)
 
-	if useIPV6 {
-		protos = append(protos, "ipv6")
+	rules, err := mal.c.ListFirewallRule(ctx, "default")
+
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to list firewall rules")
 	}
 
-	// for _, proto := range protos {
-	// 	log.Info().Msgf("mikrotik %s list addr", proto)
-	// 	initCmd := fmt.Sprintf("/%s/firewall/address-list/print ?list=crowdsec =.proplist=.id,address", proto)
-	// 	r, err := c.RunArgs(strings.Split(initCmd, " "))
-	// 	if err != nil {
-	// 		log.Fatal().Err(err).Msg("address-list print failed")
-	// 	}
-	// 	log.Info().Msgf("fill %d entry in internal %s addrList", len(r.Re), proto)
-	// 	for _, v := range r.Re {
-	// 		mal.cache[v.Map["address"]] = v.Map[".id"]
-	// 	}
-	// }
+	for _, rule := range rules {
+		if rule.Name == "cs-unifi-bouncer-ipv4" {
+			mal.cache[rule.SrcAddress] = rule.ID
+		}
+	}
 }
 
-func (mal *unifiAddrList) add(decision *models.Decision) {
+func (mal *unifiAddrList) add(ctx context.Context, decision *models.Decision) {
 
-	// log.Info().Msgf("new decisions from %s: IP: %s | Scenario: %s | Duration: %s | Scope : %v", *decision.Origin, *decision.Value, *decision.Scenario, *decision.Duration, *decision.Scope)
+	log.Info().Msgf("new decisions from %s: IP: %s | Scenario: %s | Duration: %s | Scope : %v", *decision.Origin, *decision.Value, *decision.Scenario, *decision.Duration, *decision.Scope)
 
-	// var proto string
-	// if strings.Contains(*decision.Value, ":") {
-	// 	if !useIPV6 {
-	// 		log.Info().Msgf("Ignore adding address %s (IPv6 disabled)", *decision.Value)
-	// 		return
-	// 	}
-	// 	proto = "ipv6"
+	if strings.Contains(*decision.Value, ":") {
+		log.Info().Msgf("Ignore adding address %s (IPv6 disabled)", *decision.Value)
+		return
+	}
 
-	// } else {
-	// 	proto = "ip"
-	// }
+	var address string = *decision.Value
+	var ruleIndex int = mal.calculateNextRuleIndex(ctx)
 
-	// var address string
-	// if *decision.Scope == "Ip" && proto == "ipv6" {
-	// 	address = fmt.Sprintf("%s/128", *decision.Value)
-	// } else {
-	// 	address = *decision.Value
-	// }
+	if mal.cache[address] != "" {
+		log.Info().Msgf("Address %s already present", address)
+	} else {
+		log.Info().Msgf("Next rule index: %d", ruleIndex)
+		rule, err := mal.c.CreateFirewallRule(ctx, "default", &unifi.FirewallRule{
+			Action:         "drop",
+			Enabled:        true,
+			Name:           "cs-unifi-bouncer-ipv4",
+			SrcAddress:     address,
+			Protocol:       "all",
+			Ruleset:        "WAN_IN",
+			SrcNetworkType: "NETv4",
+			DstNetworkType: "NETv4",
+			RuleIndex:      ruleIndex,
+		})
 
-	// addCmd := fmt.Sprintf("/%s/firewall/address-list/add#=list=crowdsec#=address=%s#=comment=%s#=timeout=%s", proto, address, *decision.Scenario, *decision.Duration)
-
-	// if mal.cache[address] != "" {
-	// 	log.Info().Msgf("Address %s already present", address)
-	// } else {
-
-	// 	r, err := mal.c.RunArgs(strings.Split(addCmd, "#"))
-	// 	log.Info().Msgf("resp %s", r)
-	// 	if err != nil {
-	// 		log.Error().Err(err).Msgf("%s address-list add cmd failed", proto)
-	// 	} else {
-	// 		mal.cache[address] = r.Done.List[0].Value
-	// 		log.Info().Msgf("Address %s blocked in mikrotik", address)
-	// 	}
-	// }
+		if err != nil {
+			log.Error().Err(err).Msgf("Could not create firewall rule: %v", rule)
+		} else {
+			mal.cache[address] = rule.ID
+			log.Info().Msgf("Address %s blocked in unifi", address)
+		}
+	}
 }
 
 func (mal *unifiAddrList) remove(decision *models.Decision) {
 
-	// log.Info().Msgf("removed decisions: IP: %s | Scenario: %s | Duration: %s | Scope : %v", *decision.Value, *decision.Scenario, *decision.Duration, *decision.Scope)
+	log.Info().Msgf("removed decisions: IP: %s | Scenario: %s | Duration: %s | Scope : %v", *decision.Value, *decision.Scenario, *decision.Duration, *decision.Scope)
 
 	// var proto string
 	// if strings.Contains(*decision.Value, ":") {
@@ -143,14 +136,39 @@ func (mal *unifiAddrList) remove(decision *models.Decision) {
 	// }
 }
 
-func (mal *unifiAddrList) decisionProcess(streamDecision *models.DecisionsStreamResponse) {
+func (mal *unifiAddrList) calculateNextRuleIndex(ctx context.Context) int {
+	rules, err := mal.c.ListFirewallRule(ctx, "default")
 
-	for _, decision := range streamDecision.Deleted {
-		// log.Info().Msgf("removed decisions: IP: %s | Scenario: %s | Duration: %s | Scope : %v", *decision.Value, *decision.Scenario, *decision.Duration, *decision.Scope)
-		mal.remove(decision)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to list firewall rules")
 	}
+
+	// UI defaulted to 20000 i dont know if this is the case for all unifi devices
+	var newRuleIndex int = 20000
+
+	ruleIndices := make(map[int]bool)
+	for _, rule := range rules {
+		if rule.Ruleset == "WAN_IN" {
+			ruleIndices[rule.RuleIndex] = true
+		}
+	}
+
+	for i := newRuleIndex; i <= newRuleIndex+len(ruleIndices); i++ {
+		if !ruleIndices[i] {
+			newRuleIndex = i
+			return newRuleIndex
+		}
+	}
+
+	return newRuleIndex
+}
+
+func (mal *unifiAddrList) decisionProcess(ctx context.Context, streamDecision *models.DecisionsStreamResponse) {
+
+	// for _, decision := range streamDecision.Deleted {
+	// 	// mal.remove(decision)
+	// }
 	for _, decision := range streamDecision.New {
-		// log.Info().Msgf("new decisions from %s: IP: %s | Scenario: %s | Duration: %s | Scope : %v", *decision.Origin, *decision.Value, *decision.Scenario, *decision.Duration, *decision.Scope)
-		mal.add(decision)
+		mal.add(ctx, decision)
 	}
 }

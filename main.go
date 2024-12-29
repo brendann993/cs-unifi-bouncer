@@ -33,10 +33,10 @@ func main() {
 
 	var mal unifiAddrList
 
-	mal.initUnifi()
-	// defer mal.c.Close()
-
 	g, ctx := errgroup.WithContext(context.Background())
+
+	mal.initUnifi(ctx)
+	log.Info().Msg("Unifi Connection Initialized")
 
 	g.Go(func() error {
 		bouncer.Run(ctx)
@@ -51,7 +51,7 @@ func main() {
 				log.Error().Msg("terminating bouncer process")
 				return nil
 			case decisions := <-bouncer.Stream:
-				mal.decisionProcess(decisions)
+				mal.decisionProcess(ctx, decisions)
 			}
 		}
 	})
