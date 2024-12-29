@@ -4,16 +4,15 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-routeros/routeros"
+	"github.com/paultyng/go-unifi/unifi"
 	"github.com/rs/zerolog/log"
-
 	"golang.org/x/sync/errgroup"
 
 	csbouncer "github.com/crowdsecurity/go-cs-bouncer"
 )
 
-type mikrotikAddrList struct {
-	c     *routeros.Client
+type unifiAddrList struct {
+	c     *unifi.Client
 	cache map[string]string
 }
 
@@ -32,10 +31,10 @@ func main() {
 		log.Fatal().Err(err).Msg("Bouncer init failed")
 	}
 
-	var mal mikrotikAddrList
+	var mal unifiAddrList
 
-	mal.initMikrotik()
-	defer mal.c.Close()
+	mal.initUnifi()
+	// defer mal.c.Close()
 
 	g, ctx := errgroup.WithContext(context.Background())
 
@@ -62,5 +61,4 @@ func main() {
 	if err != nil {
 		log.Error().Err(err).Send()
 	}
-
 }

@@ -11,11 +11,9 @@ var (
 	logLevel              string
 	crowdsecBouncerAPIKey string
 	crowdsecBouncerURL    string
-	mikrotikHost          string
+	unifiHost             string
 	username              string
 	password              string
-	async                 bool
-	useTLS                bool
 	useIPV6               bool
 	crowdsecOrigins       []string
 )
@@ -26,13 +24,13 @@ func initConfig() {
 	viper.BindEnv("crowdsec_bouncer_api_key")
 	viper.BindEnv("crowdsec_url")
 	viper.SetDefault("crowdsec_url", "http://crowdsec:8080/")
-	viper.BindEnv("mikrotik_host")
-	viper.BindEnv("mikrotik_user")
-	viper.BindEnv("mikrotik_pass")
-	viper.BindEnv("mikrotik_tls")
-	viper.SetDefault("mikrotik_tls", "true")
-	viper.BindEnv("mikrotik_ipv6")
-	viper.SetDefault("mikrotik_ipv6", "true")
+	viper.BindEnv("unifi_host")
+	viper.BindEnv("unifi_user")
+	viper.BindEnv("unifi_pass")
+	// viper.BindEnv("mikrotik_tls")
+	// viper.SetDefault("mikrotik_tls", "true")
+	// viper.BindEnv("mikrotik_ipv6")
+	// viper.SetDefault("mikrotik_ipv6", "true")
 	viper.BindEnv("crowdsec_origins")
 	viper.SetDefault("crowdsec_origins", nil)
 
@@ -54,23 +52,23 @@ func initConfig() {
 
 	crowdsecOrigins = viper.GetStringSlice("crowdsec_origins")
 
-	mikrotikHost = viper.GetString("mikrotik_host")
+	unifiHost = viper.GetString("unifi_host")
 
-	username = viper.GetString("mikrotik_user")
+	username = viper.GetString("unifi_user")
 	if username == "" {
-		log.Fatal().Msg("Mikrotik username is not set")
+		log.Fatal().Msg("Unifi username is not set")
 	}
 
-	password = viper.GetString("mikrotik_pass")
+	password = viper.GetString("unifi_pass")
 	if password == "" {
-		log.Fatal().Msg("Mikrotik password is not set")
+		log.Fatal().Msg("Unifi password is not set")
 	}
 
-	useTLS = viper.GetBool("mikrotik_tls")
-	useIPV6 = viper.GetBool("mikrotik_ipv6")
+	// useTLS = viper.GetBool("mikrotik_tls")
+	// useIPV6 = viper.GetBool("mikrotik_ipv6")
 
 	all := viper.AllSettings()
-	delete(all, "mikrotik_pass")
+	delete(all, "unifi_pass")
 
 	log.Printf("Using config: %+v", all)
 }
