@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/paultyng/go-unifi/unifi"
 	"github.com/rs/zerolog/log"
@@ -44,6 +45,10 @@ func main() {
 		return fmt.Errorf("bouncer stream halted")
 	})
 
+	// Timer to detect inactivity initialization can take longer
+	inactivityTimer := time.NewTimer(10 * time.Second)
+	defer inactivityTimer.Stop()
+
 	g.Go(func() error {
 		log.Printf("Processing new and deleted decisions . . .")
 		for {
@@ -52,7 +57,16 @@ func main() {
 				log.Error().Msg("terminating bouncer process")
 				return nil
 			case decisions := <-bouncer.Stream:
-				mal.decisionProcess(ctx, decisions)
+				// Reset the inactivity timer
+				if !inactivityTimer.Stop() {
+					<-inactivityTimer.C
+				}
+				inactivityTimer.Reset(time.Second)
+
+				mal.decisionProcess(decisions)
+			case <-inactivityTimer.C:
+				// Execute the update to unifi when no new messages have been received
+				mal.updateFirewallGroup(ctx)
 			}
 		}
 	})

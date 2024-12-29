@@ -133,7 +133,7 @@ func (mal *unifiAddrList) updateFirewallGroup(ctx context.Context) {
 	}
 }
 
-func (mal *unifiAddrList) add(ctx context.Context, decision *models.Decision) {
+func (mal *unifiAddrList) add(decision *models.Decision) {
 
 	log.Info().Msgf("new decisions from %s: IP: %s | Scenario: %s | Duration: %s | Scope : %v", *decision.Origin, *decision.Value, *decision.Scenario, *decision.Duration, *decision.Scope)
 
@@ -148,11 +148,10 @@ func (mal *unifiAddrList) add(ctx context.Context, decision *models.Decision) {
 		log.Warn().Msgf("Address %s already present", address)
 	} else {
 		mal.cache[address] = true
-		mal.updateFirewallGroup(ctx)
 	}
 }
 
-func (mal *unifiAddrList) remove(ctx context.Context, decision *models.Decision) {
+func (mal *unifiAddrList) remove(decision *models.Decision) {
 
 	log.Info().Msgf("removed decisions: IP: %s | Scenario: %s | Duration: %s | Scope : %v", *decision.Value, *decision.Scenario, *decision.Duration, *decision.Scope)
 
@@ -165,18 +164,17 @@ func (mal *unifiAddrList) remove(ctx context.Context, decision *models.Decision)
 
 	if mal.cache[address] {
 		delete(mal.cache, address)
-		mal.updateFirewallGroup(ctx)
 	} else {
 		log.Warn().Msgf("%s not found in local cache", address)
 	}
 }
 
-func (mal *unifiAddrList) decisionProcess(ctx context.Context, streamDecision *models.DecisionsStreamResponse) {
+func (mal *unifiAddrList) decisionProcess(streamDecision *models.DecisionsStreamResponse) {
 
 	for _, decision := range streamDecision.Deleted {
-		mal.remove(ctx, decision)
+		mal.remove(decision)
 	}
 	for _, decision := range streamDecision.New {
-		mal.add(ctx, decision)
+		mal.add(decision)
 	}
 }
