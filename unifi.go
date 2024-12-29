@@ -32,22 +32,104 @@ func (mal *unifiAddrList) initUnifi(ctx context.Context) {
 
 	mal.c = c
 
-	mal.cache = make(map[string]string)
+	mal.cache = make(map[string]bool)
 
 	// TODO: Find correct Site
 	// sites, err := c.ListSites(ctx)
 	// log.Info().Msgf("sites %v", sites)
 
-	rules, err := mal.c.ListFirewallRule(ctx, "default")
-
+	// Get or create firewall group for IPv4
+	groups, err := c.ListFirewallGroup(ctx, "default")
 	if err != nil {
-		log.Fatal().Err(err).Msg("failed to list firewall rules")
+		log.Fatal().Err(err).Msg("Failed to get firewall groups")
 	}
+
+	var firewallgroupExists bool = false
+
+	for _, group := range groups {
+		if group.Name == "cs-unifi-bouncer-ipv4" {
+			log.Info().Msg("Group already present")
+			mal.firewallGroupIPv4 = &group
+			firewallgroupExists = true
+			break
+		}
+	}
+
+	if !firewallgroupExists {
+		mal.firewallGroupIPv4 = &unifi.FirewallGroup{
+			Name:      "cs-unifi-bouncer-ipv4",
+			GroupType: "address-group",
+		}
+		mal.firewallGroupIPv4, err = mal.c.CreateFirewallGroup(ctx, "default", mal.firewallGroupIPv4)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to create firewall group")
+		} else {
+			log.Info().Msg("Firewall Group created")
+		}
+	}
+
+	// Add existing members to cache
+	for _, member := range mal.firewallGroupIPv4.GroupMembers {
+		mal.cache[member] = true
+	}
+
+	// Create firewall rule
+	rules, err := mal.c.ListFirewallRule(ctx, "default")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to get firewall rules")
+	}
+
+	var firewallRuleExists bool = false
 
 	for _, rule := range rules {
 		if rule.Name == "cs-unifi-bouncer-ipv4" {
-			mal.cache[rule.SrcAddress] = rule.ID
+			log.Info().Msg("Rule already present")
+			firewallRuleExists = true
+			break
 		}
+	}
+
+	if !firewallRuleExists {
+		_, err := mal.c.CreateFirewallRule(ctx, "default", &unifi.FirewallRule{
+			Action:              "drop",
+			Enabled:             true,
+			Name:                "cs-unifi-bouncer-ipv4",
+			SrcFirewallGroupIDs: []string{mal.firewallGroupIPv4.ID},
+			Protocol:            "all",
+			Ruleset:             "WAN_IN",
+			SrcNetworkType:      "NETv4",
+			DstNetworkType:      "NETv4",
+			SettingPreference:   "auto",
+			RuleIndex:           20000,
+		})
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to create firewall rule")
+		} else {
+			log.Info().Msg("Firewall Rule created")
+		}
+	}
+}
+
+// Function to get keys from a map
+func getKeys(m map[string]bool) []string {
+	keys := make([]string, 0, len(m))
+	for key := range m {
+		keys = append(keys, key)
+	}
+	return keys
+}
+
+// Function to update the firewall group
+func (mal *unifiAddrList) updateFirewallGroup(ctx context.Context) {
+	var err error
+
+	mal.firewallGroupIPv4.GroupMembers = getKeys(mal.cache)
+	mal.firewallGroupIPv4, err = mal.c.UpdateFirewallGroup(ctx, "default", mal.firewallGroupIPv4)
+
+	if err != nil {
+		log.Error().Err(err).Msgf("Could not update firewall group: %v", mal.firewallGroupIPv4)
+	} else {
+		log.Debug().Msg("Firewall Group updated")
 	}
 }
 
@@ -61,113 +143,39 @@ func (mal *unifiAddrList) add(ctx context.Context, decision *models.Decision) {
 	}
 
 	var address string = *decision.Value
-	var ruleIndex int = mal.calculateNextRuleIndex(ctx)
 
-	if mal.cache[address] != "" {
-		log.Info().Msgf("Address %s already present", address)
+	if mal.cache[address] {
+		log.Warn().Msgf("Address %s already present", address)
 	} else {
-		log.Info().Msgf("Next rule index: %d", ruleIndex)
-		rule, err := mal.c.CreateFirewallRule(ctx, "default", &unifi.FirewallRule{
-			Action:         "drop",
-			Enabled:        true,
-			Name:           "cs-unifi-bouncer-ipv4",
-			SrcAddress:     address,
-			Protocol:       "all",
-			Ruleset:        "WAN_IN",
-			SrcNetworkType: "NETv4",
-			DstNetworkType: "NETv4",
-			RuleIndex:      ruleIndex,
-		})
-
-		if err != nil {
-			log.Error().Err(err).Msgf("Could not create firewall rule: %v", rule)
-		} else {
-			mal.cache[address] = rule.ID
-			log.Info().Msgf("Address %s blocked in unifi", address)
-		}
+		mal.cache[address] = true
+		mal.updateFirewallGroup(ctx)
 	}
 }
 
-func (mal *unifiAddrList) remove(decision *models.Decision) {
+func (mal *unifiAddrList) remove(ctx context.Context, decision *models.Decision) {
 
 	log.Info().Msgf("removed decisions: IP: %s | Scenario: %s | Duration: %s | Scope : %v", *decision.Value, *decision.Scenario, *decision.Duration, *decision.Scope)
 
-	// var proto string
-	// if strings.Contains(*decision.Value, ":") {
-	// 	log.Info().Msgf("Ignore removing address %s (IPv6 disabled)", *decision.Value)
-	// 	if !useIPV6 {
-	// 		return
-	// 	}
-	// 	proto = "ipv6"
-	// } else {
-	// 	proto = "ip"
-	// }
-
-	// var address string
-	// if *decision.Scope == "Ip" && proto == "ipv6" {
-	// 	address = fmt.Sprintf("%s/128", *decision.Value)
-	// } else {
-	// 	address = *decision.Value
-	// }
-
-	// if mal.cache[address] != "" {
-
-	// 	log.Info().Msgf("Verify address %s in mikrotik", address)
-	// 	checkCmd := fmt.Sprintf("/%s/firewall/address-list/print =.proplist=address ?.id=%s", proto, mal.cache[address])
-	// 	r, err := mal.c.RunArgs(strings.Split(checkCmd, " "))
-	// 	if err != nil {
-	// 		log.Fatal().Err(err).Msgf("%s address-list search cmd failed", proto)
-	// 	}
-
-	// 	if len(r.Re) == 1 && r.Re[0].Map["address"] == address {
-	// 		delCmd := fmt.Sprintf("/%s/firewall/address-list/remove =numbers=%s", proto, mal.cache[address])
-	// 		_, err = mal.c.RunArgs(strings.Split(delCmd, " "))
-	// 		if err != nil {
-	// 			log.Error().Err(err).Msgf("%s address-list remove cmd failed", proto)
-	// 		}
-	// 		log.Info().Msgf("%s removed from mikrotik", address)
-	// 	} else {
-	// 		log.Info().Msgf("%s already removed from mikrotik", address)
-	// 	}
-	// 	delete(mal.cache, address)
-
-	// } else {
-	// 	log.Info().Msgf("%s not find in local cache", address)
-	// }
-}
-
-func (mal *unifiAddrList) calculateNextRuleIndex(ctx context.Context) int {
-	rules, err := mal.c.ListFirewallRule(ctx, "default")
-
-	if err != nil {
-		log.Fatal().Err(err).Msg("failed to list firewall rules")
+	if strings.Contains(*decision.Value, ":") {
+		log.Info().Msgf("Ignore removing address %s (IPv6 disabled)", *decision.Value)
+		return
 	}
 
-	// UI defaulted to 20000 i dont know if this is the case for all unifi devices
-	var newRuleIndex int = 20000
+	var address string = *decision.Value
 
-	ruleIndices := make(map[int]bool)
-	for _, rule := range rules {
-		if rule.Ruleset == "WAN_IN" {
-			ruleIndices[rule.RuleIndex] = true
-		}
+	if mal.cache[address] {
+		delete(mal.cache, address)
+		mal.updateFirewallGroup(ctx)
+	} else {
+		log.Warn().Msgf("%s not found in local cache", address)
 	}
-
-	for i := newRuleIndex; i <= newRuleIndex+len(ruleIndices); i++ {
-		if !ruleIndices[i] {
-			newRuleIndex = i
-			return newRuleIndex
-		}
-	}
-
-	return newRuleIndex
 }
 
 func (mal *unifiAddrList) decisionProcess(ctx context.Context, streamDecision *models.DecisionsStreamResponse) {
 
-	// for _, decision := range streamDecision.Deleted {
-	// 	// mal.remove(decision)
-	// }
+	for _, decision := range streamDecision.Deleted {
+		mal.remove(ctx, decision)
+	}
 	for _, decision := range streamDecision.New {
 		mal.add(ctx, decision)
 	}

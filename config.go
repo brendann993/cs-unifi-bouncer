@@ -14,7 +14,6 @@ var (
 	unifiHost             string
 	username              string
 	password              string
-	useIPV6               bool
 	crowdsecOrigins       []string
 )
 
@@ -27,10 +26,6 @@ func initConfig() {
 	viper.BindEnv("unifi_host")
 	viper.BindEnv("unifi_user")
 	viper.BindEnv("unifi_pass")
-	// viper.BindEnv("mikrotik_tls")
-	// viper.SetDefault("mikrotik_tls", "true")
-	// viper.BindEnv("mikrotik_ipv6")
-	// viper.SetDefault("mikrotik_ipv6", "true")
 	viper.BindEnv("crowdsec_origins")
 	viper.SetDefault("crowdsec_origins", nil)
 
@@ -63,9 +58,6 @@ func initConfig() {
 	if password == "" {
 		log.Fatal().Msg("Unifi password is not set")
 	}
-
-	// useTLS = viper.GetBool("mikrotik_tls")
-	// useIPV6 = viper.GetBool("mikrotik_ipv6")
 
 	all := viper.AllSettings()
 	delete(all, "unifi_pass")

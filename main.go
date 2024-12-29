@@ -12,8 +12,9 @@ import (
 )
 
 type unifiAddrList struct {
-	c     *unifi.Client
-	cache map[string]string
+	c                 *unifi.Client
+	cache             map[string]bool
+	firewallGroupIPv4 *unifi.FirewallGroup
 }
 
 func main() {
