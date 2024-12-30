@@ -126,7 +126,9 @@ func (mal *unifiAddrList) updateFirewallGroup(ctx context.Context) {
 	mal.firewallGroupIPv4.GroupMembers = getKeys(mal.cache)
 	mal.firewallGroupIPv4, err = mal.c.UpdateFirewallGroup(ctx, "default", mal.firewallGroupIPv4)
 
-	if err != nil {
+	// If group members is 0 the API sometimes does not return the group causing the Library to error.
+	// The setting however is properly updated.
+	if err != nil && len(mal.cache) != 0 {
 		log.Error().Err(err).Msgf("Could not update firewall group: %v", mal.firewallGroupIPv4)
 	} else {
 		log.Debug().Msg("Firewall Group updated")
