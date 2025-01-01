@@ -8,7 +8,6 @@ import (
 	"github.com/crowdsecurity/crowdsec/pkg/models"
 	"github.com/paultyng/go-unifi/unifi"
 	"github.com/rs/zerolog/log"
-	"golang.org/x/text/number"
 )
 
 func dial(ctx context.Context) (*unifi.Client, error) {
@@ -33,81 +32,47 @@ func (mal *unifiAddrList) initUnifi(ctx context.Context) {
 	}
 
 	mal.c = c
+	mal.cacheIpv4 = make(map[string]bool)
+	mal.cacheIpv6 = make(map[string]bool)
 
-	mal.cache = make(map[string]bool)
-
-	// Get or create firewall group for IPv4
+	// Check if firewall groups exist
 	groups, err := c.ListFirewallGroup(ctx, unifiSite)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to get firewall groups")
 	}
 
-	var firewallgroupExists bool = false
-
 	for _, group := range groups {
-		if group.Name == "cs-unifi-bouncer-ipv4" {
-			log.Info().Msg("Group already present")
-			mal.firewallGroupIPv4 = &group
-			firewallgroupExists = true
-			break
+		if strings.Contains(group.Name, "cs-unifi-bouncer-ipv4") {
+			mal.firewallGroupsIPv4[group.Name] = group.ID
+			for _, member := range group.GroupMembers {
+				mal.cacheIpv4[member] = true
+			}
+		}
+		if strings.Contains(group.Name, "cs-unifi-bouncer-ipv6") {
+			mal.firewallGroupsIPv6[group.Name] = group.ID
+			for _, member := range group.GroupMembers {
+				mal.cacheIpv6[member] = true
+			}
 		}
 	}
 
-	if !firewallgroupExists {
-		mal.firewallGroupIPv4 = &unifi.FirewallGroup{
-			Name:      "cs-unifi-bouncer-ipv4",
-			GroupType: "address-group",
-		}
-		mal.firewallGroupIPv4, err = mal.c.CreateFirewallGroup(ctx, unifiSite, mal.firewallGroupIPv4)
-		if err != nil {
-			log.Fatal().Err(err).Msg("Failed to create firewall group")
-		} else {
-			log.Info().Msg("Firewall Group created")
-		}
-	}
-
-	// Add existing members to cache
-	for _, member := range mal.firewallGroupIPv4.GroupMembers {
-		mal.cache[member] = true
-	}
-
-	// Create firewall rule
+	// Check if firewall rule exists
 	rules, err := mal.c.ListFirewallRule(ctx, unifiSite)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to get firewall rules")
 	}
 
-	var firewallRuleExists bool = false
-
 	for _, rule := range rules {
 		if rule.Name == "cs-unifi-bouncer-ipv4" {
-			log.Info().Msg("Rule already present")
-			firewallRuleExists = true
-			break
+			log.Info().Msg("IPv4 Rule already present")
+			mal.firewallRuleIPv4 = rule.ID
 		}
-	}
-
-	if !firewallRuleExists {
-		_, err := mal.c.CreateFirewallRule(ctx, unifiSite, &unifi.FirewallRule{
-			Action:              "drop",
-			Enabled:             true,
-			Name:                "cs-unifi-bouncer-ipv4",
-			SrcFirewallGroupIDs: []string{mal.firewallGroupIPv4.ID},
-			Protocol:            "all",
-			Ruleset:             "WAN_IN",
-			SrcNetworkType:      "NETv4",
-			DstNetworkType:      "NETv4",
-			SettingPreference:   "auto",
-			RuleIndex:           20000,
-		})
-		if err != nil {
-			log.Fatal().Err(err).Msg("Failed to create firewall rule")
-		} else {
-			log.Info().Msg("Firewall Rule created")
+		if rule.Name == "cs-unifi-bouncer-ipv6" {
+			log.Info().Msg("IPv6 Rule already present")
+			mal.firewallRuleIPv6 = rule.ID
 		}
 	}
 }
-
 
 // postFirewallRule creates or updates a firewall rule in the UniFi controller.
 // The rule will drop all traffic from the specified source firewall group IDs.
@@ -148,7 +113,7 @@ func (mal *unifiAddrList) postFirewallRule(ctx context.Context, ID string, ipv6 
 		firewallRule.DstNetworkType = "NETv4"
 	}
 
-	var err error;
+	var err error
 
 	if ID != "" {
 		firewallRule.ID = ID
@@ -157,14 +122,12 @@ func (mal *unifiAddrList) postFirewallRule(ctx context.Context, ID string, ipv6 
 		_, err = mal.c.CreateFirewallRule(ctx, unifiSite, firewallRule)
 	}
 
-	
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to post firewall rule")
 	} else {
 		log.Info().Msg("Firewall Rule posted")
 	}
 }
-
 
 // postFirewallGroup creates or updates a firewall group in the UniFi controller.
 // It constructs the group name and type based on the provided parameters and
@@ -195,7 +158,7 @@ func (mal *unifiAddrList) postFirewallGroup(ctx context.Context, index int, ID s
 		GroupMembers: members,
 	}
 
-	var err error;
+	var err error
 
 	if ID != "" {
 		group.ID = ID
@@ -222,18 +185,18 @@ func getKeys(m map[string]bool) []string {
 
 // Function to update the firewall group
 func (mal *unifiAddrList) updateFirewallGroup(ctx context.Context) {
-	var err error
+	// var err error
 
-	mal.firewallGroupIPv4.GroupMembers = getKeys(mal.cache)
-	mal.firewallGroupIPv4, err = mal.c.UpdateFirewallGroup(ctx, unifiSite, mal.firewallGroupIPv4)
+	// mal.firewallGroupIPv4.GroupMembers = getKeys(mal.cacheIpv4)
+	// mal.firewallGroupIPv4, err = mal.c.UpdateFirewallGroup(ctx, unifiSite, mal.firewallGroupIPv4)
 
-	// If group members is 0 the API sometimes does not return the group causing the Library to error.
-	// The setting however is properly updated.
-	if err != nil && len(mal.cache) != 0 {
-		log.Error().Err(err).Msgf("Could not update firewall group: %v", mal.firewallGroupIPv4)
-	} else {
-		log.Debug().Msg("Firewall Group updated")
-	}
+	// // If group members is 0 the API sometimes does not return the group causing the Library to error.
+	// // The setting however is properly updated.
+	// if err != nil && len(mal.cacheIpv4) != 0 {
+	// 	log.Error().Err(err).Msgf("Could not update firewall group: %v", mal.firewallGroupIPv4)
+	// } else {
+	// 	log.Debug().Msg("Firewall Group updated")
+	// }
 }
 
 func (mal *unifiAddrList) add(decision *models.Decision) {
@@ -247,10 +210,10 @@ func (mal *unifiAddrList) add(decision *models.Decision) {
 
 	var address string = *decision.Value
 
-	if mal.cache[address] {
+	if mal.cacheIpv4[address] {
 		log.Warn().Msgf("Address %s already present", address)
 	} else {
-		mal.cache[address] = true
+		mal.cacheIpv4[address] = true
 	}
 }
 
@@ -265,8 +228,8 @@ func (mal *unifiAddrList) remove(decision *models.Decision) {
 
 	var address string = *decision.Value
 
-	if mal.cache[address] {
-		delete(mal.cache, address)
+	if mal.cacheIpv4[address] {
+		delete(mal.cacheIpv4, address)
 	} else {
 		log.Warn().Msgf("%s not found in local cache", address)
 	}
