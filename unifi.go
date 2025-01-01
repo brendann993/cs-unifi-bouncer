@@ -122,17 +122,19 @@ func (mal *unifiAddrList) postFirewallRule(ctx context.Context, index int, ID st
 	}
 
 	var err error
+	var newFirewallRule *unifi.FirewallRule
 
 	if ID != "" {
 		firewallRule.ID = ID
 		_, err = mal.c.UpdateFirewallRule(ctx, unifiSite, firewallRule)
 	} else {
-		firewallRule, err = mal.c.CreateFirewallRule(ctx, unifiSite, firewallRule)
+		newFirewallRule, err = mal.c.CreateFirewallRule(ctx, unifiSite, firewallRule)
 	}
 
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to post firewall rule")
+		log.Fatal().Err(err).Msgf("Failed to post firewall rule: %v", firewallRule)
 	} else {
+		firewallRule = newFirewallRule
 		log.Info().Msg("Firewall Rule posted")
 		if ipv6 {
 			mal.firewallRuleIPv6[firewallRule.Name] = firewallRule.ID
@@ -172,18 +174,20 @@ func (mal *unifiAddrList) postFirewallGroup(ctx context.Context, index int, ID s
 	}
 
 	var err error
+	var newGroup *unifi.FirewallGroup
 
 	if ID != "" {
 		group.ID = ID
 		_, err = mal.c.UpdateFirewallGroup(ctx, unifiSite, group)
 	} else {
-		group, err = mal.c.CreateFirewallGroup(ctx, unifiSite, group)
+		newGroup, err = mal.c.CreateFirewallGroup(ctx, unifiSite, group)
 	}
 
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to post firewall group")
+		log.Fatal().Err(err).Msgf("Failed to post firewall group: %v", group)
 		return ""
 	} else {
+		group = newGroup
 		log.Info().Msg("Firewall Group posted")
 		if ipv6 {
 			mal.firewallGroupsIPv6[name] = group.ID
