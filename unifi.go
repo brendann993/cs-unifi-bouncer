@@ -36,8 +36,8 @@ func (mal *unifiAddrList) initUnifi(ctx context.Context) {
 	mal.cacheIpv6 = make(map[string]bool)
 	mal.firewallGroupsIPv4 = make(map[string]string)
 	mal.firewallGroupsIPv6 = make(map[string]string)
-	mal.firewallRuleIPv4 = make(map[string]string)
-	mal.firewallRuleIPv6 = make(map[string]string)
+	mal.firewallRuleIPv4 = make(map[string]FirewallRuleCache)
+	mal.firewallRuleIPv6 = make(map[string]FirewallRuleCache)
 
 	// Check if firewall groups exist
 	groups, err := c.ListFirewallGroup(ctx, unifiSite)
@@ -68,10 +68,10 @@ func (mal *unifiAddrList) initUnifi(ctx context.Context) {
 
 	for _, rule := range rules {
 		if strings.Contains(rule.Name, "cs-unifi-bouncer-ipv4") {
-			mal.firewallRuleIPv4[rule.Name] = rule.ID
+			mal.firewallRuleIPv4[rule.Name] = FirewallRuleCache{id: rule.ID, groupId: rule.SrcFirewallGroupIDs[0]}
 		}
 		if strings.Contains(rule.Name, "cs-unifi-bouncer-ipv6") {
-			mal.firewallRuleIPv6[rule.Name] = rule.ID
+			mal.firewallRuleIPv6[rule.Name] = FirewallRuleCache{id: rule.ID, groupId: rule.SrcFirewallGroupIDs[0]}
 		}
 	}
 }
@@ -122,22 +122,26 @@ func (mal *unifiAddrList) postFirewallRule(ctx context.Context, index int, ID st
 	}
 
 	var err error
+	var newFirewallRule *unifi.FirewallRule
 
 	if ID != "" {
 		firewallRule.ID = ID
 		_, err = mal.c.UpdateFirewallRule(ctx, unifiSite, firewallRule)
 	} else {
-		firewallRule, err = mal.c.CreateFirewallRule(ctx, unifiSite, firewallRule)
+		newFirewallRule, err = mal.c.CreateFirewallRule(ctx, unifiSite, firewallRule)
 	}
 
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to post firewall rule")
+		log.Fatal().Err(err).Msgf("Failed to post firewall rule: %v", firewallRule)
 	} else {
+		if newFirewallRule != nil {
+			firewallRule = newFirewallRule
+		}
 		log.Info().Msg("Firewall Rule posted")
 		if ipv6 {
-			mal.firewallRuleIPv6[firewallRule.Name] = firewallRule.ID
+			mal.firewallRuleIPv6[firewallRule.Name] = FirewallRuleCache{id: firewallRule.ID, groupId: groupId}
 		} else {
-			mal.firewallRuleIPv4[firewallRule.Name] = firewallRule.ID
+			mal.firewallRuleIPv4[firewallRule.Name] = FirewallRuleCache{id: firewallRule.ID, groupId: groupId}
 		}
 	}
 }
@@ -172,18 +176,22 @@ func (mal *unifiAddrList) postFirewallGroup(ctx context.Context, index int, ID s
 	}
 
 	var err error
+	var newGroup *unifi.FirewallGroup
 
 	if ID != "" {
 		group.ID = ID
 		_, err = mal.c.UpdateFirewallGroup(ctx, unifiSite, group)
 	} else {
-		group, err = mal.c.CreateFirewallGroup(ctx, unifiSite, group)
+		newGroup, err = mal.c.CreateFirewallGroup(ctx, unifiSite, group)
 	}
 
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to post firewall group")
+		log.Fatal().Err(err).Msgf("Failed to post firewall group: %v", group)
 		return ""
 	} else {
+		if newGroup != nil {
+			group = newGroup
+		}
 		log.Info().Msg("Firewall Group posted")
 		if ipv6 {
 			mal.firewallGroupsIPv6[name] = group.ID
@@ -232,12 +240,14 @@ func (mal *unifiAddrList) updateFirewall(ctx context.Context) {
 
 		// Get the rule ID if it exists
 		ruleId := ""
-		if id, exists := mal.firewallRuleIPv4["cs-unifi-bouncer-ipv4-"+strconv.Itoa(i/maxGroupSize)]; exists {
-			ruleId = id
+		cachedGroupId := ""
+		if ruleCache, exists := mal.firewallRuleIPv4["cs-unifi-bouncer-ipv4-"+strconv.Itoa(i/maxGroupSize)]; exists {
+			ruleId = ruleCache.id
+			cachedGroupId = ruleCache.groupId
 		}
 
-		// Post the firewall rule
-		if groupID != "" {
+		// Post the firewall rule, skip if the group ID is the same as the cached one (no changes)
+		if groupID != "" && groupID != cachedGroupId {
 			mal.postFirewallRule(ctx, i/maxGroupSize, ruleId, false, groupID)
 		}
 	}
@@ -245,13 +255,12 @@ func (mal *unifiAddrList) updateFirewall(ctx context.Context) {
 	// Delete old rules and groups that are no longer needed with an index higher than numGroups
 	for i := numGroupsIPv4; ; i++ {
 		name := "cs-unifi-bouncer-ipv4-" + strconv.Itoa(i)
-		groupID := mal.firewallGroupsIPv4[name]
-		ruleID, exists := mal.firewallRuleIPv4[name]
+		ruleCache, exists := mal.firewallRuleIPv4[name]
 		if !exists {
 			break
 		}
 
-		err := mal.c.DeleteFirewallRule(ctx, unifiSite, ruleID)
+		err := mal.c.DeleteFirewallRule(ctx, unifiSite, ruleCache.id)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed to delete old firewall rule: %s", name)
 		} else {
@@ -259,7 +268,7 @@ func (mal *unifiAddrList) updateFirewall(ctx context.Context) {
 			delete(mal.firewallRuleIPv4, name)
 		}
 
-		err = mal.c.DeleteFirewallGroup(ctx, unifiSite, groupID)
+		err = mal.c.DeleteFirewallGroup(ctx, unifiSite, ruleCache.groupId)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed to delete old firewall group: %s", name)
 		} else {
@@ -294,12 +303,14 @@ func (mal *unifiAddrList) updateFirewall(ctx context.Context) {
 
 		// Get the rule ID if it exists
 		ruleId := ""
-		if id, exists := mal.firewallRuleIPv6["cs-unifi-bouncer-ipv4-"+strconv.Itoa(i/maxGroupSize)]; exists {
-			ruleId = id
+		cachedGroupId := ""
+		if ruleCache, exists := mal.firewallRuleIPv6["cs-unifi-bouncer-ipv6-"+strconv.Itoa(i/maxGroupSize)]; exists {
+			ruleId = ruleCache.id
+			cachedGroupId = ruleCache.groupId
 		}
 
-		// Post the firewall rule
-		if groupID != "" {
+		// Post the firewall rule, skip if the group ID is the same as the cached one (no changes)
+		if groupID != "" && groupID != cachedGroupId {
 			mal.postFirewallRule(ctx, i/maxGroupSize, ruleId, true, groupID)
 		}
 	}
@@ -307,13 +318,12 @@ func (mal *unifiAddrList) updateFirewall(ctx context.Context) {
 	// Delete old groups that are no longer needed with an index higher than numGroups
 	for i := numGroupsIPv6; ; i++ {
 		groupName := "cs-unifi-bouncer-ipv6-" + strconv.Itoa(i)
-		groupID := mal.firewallGroupsIPv6[groupName]
-		ruleID, exists := mal.firewallRuleIPv6[groupName]
+		ruleCache, exists := mal.firewallRuleIPv6[groupName]
 		if !exists {
 			break
 		}
 
-		err := mal.c.DeleteFirewallRule(ctx, unifiSite, ruleID)
+		err := mal.c.DeleteFirewallRule(ctx, unifiSite, ruleCache.id)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed to delete old firewall rule: %s", groupName)
 		} else {
@@ -321,7 +331,7 @@ func (mal *unifiAddrList) updateFirewall(ctx context.Context) {
 			delete(mal.firewallRuleIPv6, groupName)
 		}
 
-		err = mal.c.DeleteFirewallGroup(ctx, unifiSite, groupID)
+		err = mal.c.DeleteFirewallGroup(ctx, unifiSite, ruleCache.groupId)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed to delete old firewall group: %s", groupName)
 		} else {
