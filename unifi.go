@@ -100,9 +100,9 @@ func (mal *unifiAddrList) postFirewallRule(ctx context.Context, index int, ID st
 		ruleset = "WANv6_IN"
 	}
 
-	startRuleIndex := 20000
+	startRuleIndex := ipv4StartRuleIndex
 	if ipv6 {
-		startRuleIndex = 25000
+		startRuleIndex = ipv6StartRuleIndex
 	}
 
 	firewallRule := &unifi.FirewallRule{

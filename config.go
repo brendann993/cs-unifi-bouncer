@@ -17,6 +17,8 @@ var (
 	password              string
 	useIPV6               bool
 	maxGroupSize          int
+	ipv4StartRuleIndex    int
+	ipv6StartRuleIndex    int
 	crowdsecOrigins       []string
 )
 
@@ -33,6 +35,12 @@ func initConfig() {
 	viper.SetDefault("unifi_site", "default")
 	viper.BindEnv("unifi_ipv6")
 	viper.SetDefault("unifi_ipv6", "true")
+	viper.BindEnv("unifi_max_group_size")
+	viper.SetDefault("unifi_max_group_size", 10000)
+	viper.BindEnv("unifi_ipv4_start_rule_index")
+	viper.SetDefault("unifi_ipv4_start_rule_index", 20000)
+	viper.BindEnv("unifi_ipv6_start_rule_index")
+	viper.SetDefault("unifi_ipv6_start_rule_index", 25000)
 	viper.BindEnv("unifi_max_group_size")
 	viper.SetDefault("unifi_max_group_size", 10000)
 	viper.BindEnv("crowdsec_origins")
@@ -73,6 +81,9 @@ func initConfig() {
 	useIPV6 = viper.GetBool("unifi_ipv6")
 
 	maxGroupSize = viper.GetInt("unifi_max_group_size")
+
+	ipv4StartRuleIndex = viper.GetInt("unifi_ipv4_start_rule_index")
+	ipv6StartRuleIndex = viper.GetInt("unifi_ipv6_start_rule_index")
 
 	all := viper.AllSettings()
 	delete(all, "unifi_pass")
