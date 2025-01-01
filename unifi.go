@@ -204,16 +204,22 @@ func (mal *unifiAddrList) add(decision *models.Decision) {
 	log.Info().Msgf("new decisions from %s: IP: %s | Scenario: %s | Duration: %s | Scope : %v", *decision.Origin, *decision.Value, *decision.Scenario, *decision.Duration, *decision.Scope)
 
 	if strings.Contains(*decision.Value, ":") {
-		log.Info().Msgf("Ignore adding address %s (IPv6 disabled)", *decision.Value)
-		return
-	}
+		if !useIPV6 {
+			log.Info().Msgf("Ignore adding address %s (IPv6 disabled)", *decision.Value)
+			return
+		}
 
-	var address string = *decision.Value
-
-	if mal.cacheIpv4[address] {
-		log.Warn().Msgf("Address %s already present", address)
+		if mal.cacheIpv6[*decision.Value] {
+			log.Warn().Msgf("Address %s already present", *decision.Value)
+		} else {
+			mal.cacheIpv6[*decision.Value] = true
+		}
 	} else {
-		mal.cacheIpv4[address] = true
+		if mal.cacheIpv4[*decision.Value] {
+			log.Warn().Msgf("Address %s already present", *decision.Value)
+		} else {
+			mal.cacheIpv4[*decision.Value] = true
+		}
 	}
 }
 
@@ -222,16 +228,22 @@ func (mal *unifiAddrList) remove(decision *models.Decision) {
 	log.Info().Msgf("removed decisions: IP: %s | Scenario: %s | Duration: %s | Scope : %v", *decision.Value, *decision.Scenario, *decision.Duration, *decision.Scope)
 
 	if strings.Contains(*decision.Value, ":") {
-		log.Info().Msgf("Ignore removing address %s (IPv6 disabled)", *decision.Value)
-		return
-	}
+		if !useIPV6 {
+			log.Info().Msgf("Ignore removing address %s (IPv6 disabled)", *decision.Value)
+			return
+		}
 
-	var address string = *decision.Value
-
-	if mal.cacheIpv4[address] {
-		delete(mal.cacheIpv4, address)
+		if mal.cacheIpv6[*decision.Value] {
+			delete(mal.cacheIpv6, *decision.Value)
+		} else {
+			log.Warn().Msgf("%s not found in local cache", *decision.Value)
+		}
 	} else {
-		log.Warn().Msgf("%s not found in local cache", address)
+		if mal.cacheIpv4[*decision.Value] {
+			delete(mal.cacheIpv4, *decision.Value)
+		} else {
+			log.Warn().Msgf("%s not found in local cache", *decision.Value)
+		}
 	}
 }
 

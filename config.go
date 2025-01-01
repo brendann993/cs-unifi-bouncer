@@ -15,6 +15,7 @@ var (
 	unifiSite             string
 	username              string
 	password              string
+	useIPV6               bool
 	crowdsecOrigins       []string
 )
 
@@ -29,6 +30,8 @@ func initConfig() {
 	viper.BindEnv("unifi_pass")
 	viper.BindEnv("unifi_site")
 	viper.SetDefault("unifi_site", "default")
+	viper.BindEnv("unifi_ipv6")
+	viper.SetDefault("unifi_ipv6", "true")
 	viper.BindEnv("crowdsec_origins")
 	viper.SetDefault("crowdsec_origins", nil)
 
@@ -61,6 +64,8 @@ func initConfig() {
 	if password == "" {
 		log.Fatal().Msg("Unifi password is not set")
 	}
+
+	useIPV6 = viper.GetBool("unifi_ipv6")
 
 	all := viper.AllSettings()
 	delete(all, "unifi_pass")
