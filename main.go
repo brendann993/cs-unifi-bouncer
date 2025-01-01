@@ -70,7 +70,7 @@ func main() {
 				mal.decisionProcess(decisions)
 			case <-inactivityTimer.C:
 				// Execute the update to unifi when no new messages have been received
-				mal.updateFirewallGroup(ctx)
+				mal.updateFirewall(ctx)
 			}
 		}
 	})

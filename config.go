@@ -16,6 +16,7 @@ var (
 	username              string
 	password              string
 	useIPV6               bool
+	maxGroupSize          int
 	crowdsecOrigins       []string
 )
 
@@ -32,6 +33,8 @@ func initConfig() {
 	viper.SetDefault("unifi_site", "default")
 	viper.BindEnv("unifi_ipv6")
 	viper.SetDefault("unifi_ipv6", "true")
+	viper.BindEnv("unifi_max_group_size")
+	viper.SetDefault("unifi_max_group_size", 10000)
 	viper.BindEnv("crowdsec_origins")
 	viper.SetDefault("crowdsec_origins", nil)
 
@@ -65,7 +68,11 @@ func initConfig() {
 		log.Fatal().Msg("Unifi password is not set")
 	}
 
+	unifiSite = viper.GetString("unifi_site")
+
 	useIPV6 = viper.GetBool("unifi_ipv6")
+
+	maxGroupSize = viper.GetInt("unifi_max_group_size")
 
 	all := viper.AllSettings()
 	delete(all, "unifi_pass")
