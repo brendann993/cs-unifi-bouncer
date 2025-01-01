@@ -1,22 +1,31 @@
 <p align="center">
-<img src="https://github.com/funkolab/cs-mikrotik-bouncer/raw/main/docs/assets/crowdsec_mikrotik_logo.png" alt="CrowdSec" title="CrowdSec" width="300" height="280" />
+<img src="https://github.com/teifun2/cs-unifi-bouncer/raw/main/docs/assets/crowdsec_unifi_logo.png" alt="CrowdSec" title="CrowdSec" width="300" height="280" />
 </p>
 
-# CrowdSec Mikrotik Bouncer
-A CrowdSec Bouncer for MikroTik RouterOS appliance
+# CrowdSec Unifi Bouncer
+A CrowdSec Bouncer for Unifi appliance
 
-![GitHub](https://img.shields.io/github/license/funkolab/cs-mikrotik-bouncer)
-![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/funkolab/cs-mikrotik-bouncer)
-[![Go Report Card](https://goreportcard.com/badge/github.com/funkolab/cs-mikrotik-bouncer)](https://goreportcard.com/report/github.com/funkolab/cs-mikrotik-bouncer)
-[![Maintainability](https://api.codeclimate.com/v1/badges/0104e64dccffc4b42f52/maintainability)](https://codeclimate.com/github/funkolab/cs-mikrotik-bouncer/maintainability)
-[![ci](https://github.com/funkolab/cs-mikrotik-bouncer/actions/workflows/container-release.yaml/badge.svg)](https://github.com/funkolab/cs-mikrotik-bouncer/actions/workflows/container-release.yaml)
-![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/funkolab/cs-mikrotik-bouncer)
-![Docker Image Size (latest semver)](https://img.shields.io/docker/image-size/funkolab/cs-mikrotik-bouncer)
+![GitHub](https://img.shields.io/github/license/teifun2/cs-unifi-bouncer)
+![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/teifun2/cs-unifi-bouncer)
+[![Go Report Card](https://goreportcard.com/badge/github.com/teifun2/cs-unifi-bouncer)](https://goreportcard.com/report/github.com/teifun2/cs-unifi-bouncer)
+[![Maintainability](https://api.codeclimate.com/v1/badges/0104e64dccffc4b42f52/maintainability)](https://codeclimate.com/github/teifun2/cs-unifi-bouncer/maintainability)
+[![ci](https://github.com/teifun2/cs-unifi-bouncer/actions/workflows/container-release.yaml/badge.svg)](https://github.com/teifun2/cs-unifi-bouncer/actions/workflows/container-release.yaml)
+![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/teifun2/cs-unifi-bouncer)
+![Docker Image Size (latest semver)](https://img.shields.io/docker/image-size/teifun2/cs-unifi-bouncer)
+
+> [!CAUTION]
+> This was only tested with an UDM in a homelab environment. Further testing is needed
+
+> [!NOTE]  
+> Due to various quirks of the Unifi API this got more complicated than originally planneed.
+
 
 # Description
-This repository aim to implement a [CrowdSec](https://doc.crowdsec.net/) bouncer for the router [Mikrotik](https://mikrotik.com) to block malicious IP to access your services.
-For this it leverages [Mikrotik API](https://mikrotik.com) to populate a dynamic Firewall Address List.
+This repository aim to implement a [CrowdSec](https://doc.crowdsec.net/) bouncer for the routers of [Unifi](https://www.ui.com/) to block malicious IP to access your services.
+For this it leverages [Unifi API](https://ubntwiki.com/products/software/unifi-controller/api) to populate a dynamic Firewall Address List. Specically the Go Library [go-unifi](https://github.com/paultyng/go-unifi) is used.
 
+# Acknowledgment
+This is a Fork of [funkolab/cs-mikrotik-bouncer](https://github.com/funkolab/cs-mikrotik-bouncer) and would not have been possible without this previous work
 
 # Usage
 For now, this web service is mainly fought to be used as a container.   
@@ -24,44 +33,36 @@ If you need to build from source, you can get some inspiration from the Dockerfi
 
 
 ## Prerequisites
-You should have a Mikrotik appliance and a CrowdSec instance running.   
-The container is available as docker image `ghcr.io/funkolab/cs-mikrotik-bouncer`. It must have access to CrowdSec and to Mikrotik.   
+You should have a Unifi appliance and a CrowdSec instance running.   
+The container is available as docker image `ghcr.io/teifun2/cs-unifi-bouncer`. It must have access to CrowdSec and to Unifi.   
 
 Generate a bouncer API key following [CrowdSec documentation](https://doc.crowdsec.net/docs/cscli/cscli_bouncers_add)
 
 ## Procedure
-1. Get a bouncer API key from your CrowdSec with command `cscli bouncers add mikrotik-bouncer`
+1. Get a bouncer API key from your CrowdSec with command `cscli bouncers add unifi-bouncer`
 2. Copy the API key printed. You **_WON'T_** be able the get it again.
 3. Paste this API key as the value for bouncer environment variable `CROWDSEC_BOUNCER_API_KEY`, instead of "MyApiKey"
 4. Start bouncer with `docker-compose up bouncer` in the `example` directory
-5. Create `IP drop Filter Rules` in `input` and `forward` Chain with the `crowdsec Source Address List`
-6. Create `IPv6 drop Filter Rules` in `input` and `forward` Chain with the `crowdsec Source Address List` (if IPv6 used)
+5. It will directly communicate with your Unifi appliance and configure Rules and IP Groups
 
-```shell
-/ip/firewall/filter/
-add action=drop src-address-list=crowdsec chain=input  in-interface=your-wan-interface place-before=0 comment="crowdsec input drop rules"
-add action=drop src-address-list=crowdsec chain=forward in-interface=your-wan-interface place-before=0 comment="crowdsec forward drop rules"
-
-/ipv6/firewall/filter/
-add action=drop src-address-list=crowdsec chain=input  in-interface=your-wan-interface place-before=0 comment="crowdsec input drop rules"
-add action=drop src-address-list=crowdsec chain=forward in-interface=your-wan-interface place-before=0 comment="crowdsec forward drop rules"
-```
 
 ## Configuration
 The bouncer configuration is made via environment variables:
 
-| Name                       | Description                                                                                                        | Default                 | Required |
-|----------------------------|--------------------------------------------------------------------------------------------------------------------|-------------------------|:--------:|
-| `CROWDSEC_BOUNCER_API_KEY` | CrowdSec bouncer API key required to be authorized to request local API                                            | `none`                  |    ✅     |
-| `CROWDSEC_URL`             | Host and port of CrowdSec agent                                                                                    | `http://crowdsec:8080/` |    ✅     |
-| `CROWDSEC_ORIGINS`        | Space separated list of CrowdSec origins to filter from LAPI (EG: "crowdsec cscli") | `none` |     ❌      |
-| `LOG_LEVEL`                | Minimum log level for bouncer in [zerolog levels](https://pkg.go.dev/github.com/rs/zerolog#readme-leveled-logging) | `1`                     |    ❌     |
-| `MIKROTIK_HOST`            | Mikrotik appliance address                                                                                         | `none`                  |    ✅     |
-| `MIKROTIK_USER`            | Mikrotik appliance username                                                                                        | `none`                  |    ✅     |
-| `MIKROTIK_PASS`            | Mikrotik appliance password                                                                                        | `none`                  |    ✅     |
-| `MIKROTIK_TLS`             | User TLS to connect to Mikrotik API                                                                                | `true`                  |    ❌     |
-| `MIKROTIK_IPV6`            | Enable / Disable IPv6 support                                                                                      | `true`                  |    ❌     |
-
+| Name                          | Description                                                                                                        | Default                 | Required |
+|-------------------------------|--------------------------------------------------------------------------------------------------------------------|-------------------------|:--------:|
+| `CROWDSEC_BOUNCER_API_KEY`    | CrowdSec bouncer API key required to be authorized to request local API                                            | `none`                  |    ✅   |
+| `CROWDSEC_URL`                | Host and port of CrowdSec agent                                                                                    | `http://crowdsec:8080/` |    ✅   |
+| `CROWDSEC_ORIGINS`            | Space separated list of CrowdSec origins to filter from LAPI (EG: "crowdsec cscli")                                | `none`                  |    ❌   |
+| `LOG_LEVEL`                   | Minimum log level for bouncer in [zerolog levels](https://pkg.go.dev/github.com/rs/zerolog#readme-leveled-logging) | `1`                     |    ❌   |
+| `UNIFI_HOST`                  | Unifi appliance address                                                                                            | `none`                  |    ✅   |
+| `UNIFI_USER`                  | Unifi appliance username                                                                                           | `none`                  |    ✅   |
+| `UNIFI_PASS`                  | Unifi appliance password                                                                                           | `none`                  |    ✅   |
+| `UNIFI_IPV6`                  | Enable / Disable IPv6 support                                                                                      | `true`                  |    ❌   |
+| `UNIFI_SITE`                  | Unifi Site Configuration in case of multiple sites                                                                 | `default`               |    ❌   |
+| `UNIFI_MAX_GROUP_SIZE`        | UDM has a may IP Group size of 10'000 This might be different for other appliances                                 | `10000`                 |    ❌   |
+| `UNIFI_IPV4_START_RULE_INDEX` | If you have other custom Rules defined in your Firewall this might need to be changed to prevent collisions        | `20000`                 |    ❌   |
+| `UNIFI_IPV6_START_RULE_INDEX` | If you have other custom Rules defined in your Firewall this might need to be changed to prevent collisions        | `25000`                 |    ❌   |
 
 
 # Contribution

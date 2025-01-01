@@ -11,12 +11,14 @@ var (
 	logLevel              string
 	crowdsecBouncerAPIKey string
 	crowdsecBouncerURL    string
-	mikrotikHost          string
+	unifiHost             string
+	unifiSite             string
 	username              string
 	password              string
-	async                 bool
-	useTLS                bool
 	useIPV6               bool
+	maxGroupSize          int
+	ipv4StartRuleIndex    int
+	ipv6StartRuleIndex    int
 	crowdsecOrigins       []string
 )
 
@@ -26,13 +28,21 @@ func initConfig() {
 	viper.BindEnv("crowdsec_bouncer_api_key")
 	viper.BindEnv("crowdsec_url")
 	viper.SetDefault("crowdsec_url", "http://crowdsec:8080/")
-	viper.BindEnv("mikrotik_host")
-	viper.BindEnv("mikrotik_user")
-	viper.BindEnv("mikrotik_pass")
-	viper.BindEnv("mikrotik_tls")
-	viper.SetDefault("mikrotik_tls", "true")
-	viper.BindEnv("mikrotik_ipv6")
-	viper.SetDefault("mikrotik_ipv6", "true")
+	viper.BindEnv("unifi_host")
+	viper.BindEnv("unifi_user")
+	viper.BindEnv("unifi_pass")
+	viper.BindEnv("unifi_site")
+	viper.SetDefault("unifi_site", "default")
+	viper.BindEnv("unifi_ipv6")
+	viper.SetDefault("unifi_ipv6", "true")
+	viper.BindEnv("unifi_max_group_size")
+	viper.SetDefault("unifi_max_group_size", 10000)
+	viper.BindEnv("unifi_ipv4_start_rule_index")
+	viper.SetDefault("unifi_ipv4_start_rule_index", 20000)
+	viper.BindEnv("unifi_ipv6_start_rule_index")
+	viper.SetDefault("unifi_ipv6_start_rule_index", 25000)
+	viper.BindEnv("unifi_max_group_size")
+	viper.SetDefault("unifi_max_group_size", 10000)
 	viper.BindEnv("crowdsec_origins")
 	viper.SetDefault("crowdsec_origins", nil)
 
@@ -54,23 +64,29 @@ func initConfig() {
 
 	crowdsecOrigins = viper.GetStringSlice("crowdsec_origins")
 
-	mikrotikHost = viper.GetString("mikrotik_host")
+	unifiHost = viper.GetString("unifi_host")
 
-	username = viper.GetString("mikrotik_user")
+	username = viper.GetString("unifi_user")
 	if username == "" {
-		log.Fatal().Msg("Mikrotik username is not set")
+		log.Fatal().Msg("Unifi username is not set")
 	}
 
-	password = viper.GetString("mikrotik_pass")
+	password = viper.GetString("unifi_pass")
 	if password == "" {
-		log.Fatal().Msg("Mikrotik password is not set")
+		log.Fatal().Msg("Unifi password is not set")
 	}
 
-	useTLS = viper.GetBool("mikrotik_tls")
-	useIPV6 = viper.GetBool("mikrotik_ipv6")
+	unifiSite = viper.GetString("unifi_site")
+
+	useIPV6 = viper.GetBool("unifi_ipv6")
+
+	maxGroupSize = viper.GetInt("unifi_max_group_size")
+
+	ipv4StartRuleIndex = viper.GetInt("unifi_ipv4_start_rule_index")
+	ipv6StartRuleIndex = viper.GetInt("unifi_ipv6_start_rule_index")
 
 	all := viper.AllSettings()
-	delete(all, "mikrotik_pass")
+	delete(all, "unifi_pass")
 
 	log.Printf("Using config: %+v", all)
 }
