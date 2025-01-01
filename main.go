@@ -18,8 +18,8 @@ type unifiAddrList struct {
 	cacheIpv6          map[string]bool
 	firewallGroupsIPv4 map[string]string
 	firewallGroupsIPv6 map[string]string
-	firewallRuleIPv4   string
-	firewallRuleIPv6   string
+	firewallRuleIPv4   map[string]string
+	firewallRuleIPv6   map[string]string
 }
 
 func main() {
