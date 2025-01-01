@@ -34,12 +34,8 @@ func (mal *unifiAddrList) initUnifi(ctx context.Context) {
 
 	mal.cache = make(map[string]bool)
 
-	// TODO: Find correct Site
-	// sites, err := c.ListSites(ctx)
-	// log.Info().Msgf("sites %v", sites)
-
 	// Get or create firewall group for IPv4
-	groups, err := c.ListFirewallGroup(ctx, "default")
+	groups, err := c.ListFirewallGroup(ctx, unifiSite)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to get firewall groups")
 	}
@@ -60,7 +56,7 @@ func (mal *unifiAddrList) initUnifi(ctx context.Context) {
 			Name:      "cs-unifi-bouncer-ipv4",
 			GroupType: "address-group",
 		}
-		mal.firewallGroupIPv4, err = mal.c.CreateFirewallGroup(ctx, "default", mal.firewallGroupIPv4)
+		mal.firewallGroupIPv4, err = mal.c.CreateFirewallGroup(ctx, unifiSite, mal.firewallGroupIPv4)
 		if err != nil {
 			log.Fatal().Err(err).Msg("Failed to create firewall group")
 		} else {
@@ -74,7 +70,7 @@ func (mal *unifiAddrList) initUnifi(ctx context.Context) {
 	}
 
 	// Create firewall rule
-	rules, err := mal.c.ListFirewallRule(ctx, "default")
+	rules, err := mal.c.ListFirewallRule(ctx, unifiSite)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to get firewall rules")
 	}
@@ -90,7 +86,7 @@ func (mal *unifiAddrList) initUnifi(ctx context.Context) {
 	}
 
 	if !firewallRuleExists {
-		_, err := mal.c.CreateFirewallRule(ctx, "default", &unifi.FirewallRule{
+		_, err := mal.c.CreateFirewallRule(ctx, unifiSite, &unifi.FirewallRule{
 			Action:              "drop",
 			Enabled:             true,
 			Name:                "cs-unifi-bouncer-ipv4",
@@ -124,7 +120,7 @@ func (mal *unifiAddrList) updateFirewallGroup(ctx context.Context) {
 	var err error
 
 	mal.firewallGroupIPv4.GroupMembers = getKeys(mal.cache)
-	mal.firewallGroupIPv4, err = mal.c.UpdateFirewallGroup(ctx, "default", mal.firewallGroupIPv4)
+	mal.firewallGroupIPv4, err = mal.c.UpdateFirewallGroup(ctx, unifiSite, mal.firewallGroupIPv4)
 
 	// If group members is 0 the API sometimes does not return the group causing the Library to error.
 	// The setting however is properly updated.

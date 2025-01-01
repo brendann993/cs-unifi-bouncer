@@ -12,6 +12,7 @@ var (
 	crowdsecBouncerAPIKey string
 	crowdsecBouncerURL    string
 	unifiHost             string
+	unifiSite             string
 	username              string
 	password              string
 	crowdsecOrigins       []string
@@ -26,6 +27,8 @@ func initConfig() {
 	viper.BindEnv("unifi_host")
 	viper.BindEnv("unifi_user")
 	viper.BindEnv("unifi_pass")
+	viper.BindEnv("unifi_site")
+	viper.SetDefault("unifi_site", "default")
 	viper.BindEnv("crowdsec_origins")
 	viper.SetDefault("crowdsec_origins", nil)
 
