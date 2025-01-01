@@ -12,14 +12,19 @@ import (
 	csbouncer "github.com/crowdsecurity/go-cs-bouncer"
 )
 
+type FirewallRuleCache struct {
+	id string
+	groupId string
+}
+
 type unifiAddrList struct {
 	c                  *unifi.Client
 	cacheIpv4          map[string]bool
 	cacheIpv6          map[string]bool
 	firewallGroupsIPv4 map[string]string
 	firewallGroupsIPv6 map[string]string
-	firewallRuleIPv4   map[string]string
-	firewallRuleIPv6   map[string]string
+	firewallRuleIPv4   map[string]FirewallRuleCache
+	firewallRuleIPv6   map[string]FirewallRuleCache
 }
 
 func main() {
