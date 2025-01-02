@@ -2,6 +2,9 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
+	"net/http"
+	"net/http/cookiejar"
 	"strconv"
 	"strings"
 
@@ -13,6 +16,16 @@ import (
 func dial(ctx context.Context) (*unifi.Client, error) {
 	client := unifi.Client{}
 	client.SetBaseURL(unifiHost)
+	if skipTLSVerify {
+		httpClient := &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			},
+		}
+		jar, _ := cookiejar.New(nil)
+		httpClient.Jar = jar
+		client.SetHTTPClient(httpClient)
+	}
 	err := client.Login(ctx, username, password)
 
 	if err != nil {

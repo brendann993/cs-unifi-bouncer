@@ -19,6 +19,7 @@ var (
 	maxGroupSize          int
 	ipv4StartRuleIndex    int
 	ipv6StartRuleIndex    int
+	skipTLSVerify         bool
 	crowdsecOrigins       []string
 )
 
@@ -43,6 +44,8 @@ func initConfig() {
 	viper.SetDefault("unifi_ipv6_start_rule_index", 25000)
 	viper.BindEnv("unifi_max_group_size")
 	viper.SetDefault("unifi_max_group_size", 10000)
+	viper.BindEnv("unifi_skip_tls_verify")
+	viper.SetDefault("unifi_skip_tls_verify", "false")
 	viper.BindEnv("crowdsec_origins")
 	viper.SetDefault("crowdsec_origins", nil)
 
@@ -84,6 +87,8 @@ func initConfig() {
 
 	ipv4StartRuleIndex = viper.GetInt("unifi_ipv4_start_rule_index")
 	ipv6StartRuleIndex = viper.GetInt("unifi_ipv6_start_rule_index")
+
+	skipTLSVerify = viper.GetBool("unifi_skip_tls_verify")
 
 	all := viper.AllSettings()
 	delete(all, "unifi_pass")
