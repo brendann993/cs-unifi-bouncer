@@ -36,7 +36,7 @@ func main() {
 	bouncer := &csbouncer.StreamBouncer{
 		APIKey:         crowdsecBouncerAPIKey,
 		APIUrl:         crowdsecBouncerURL,
-		TickerInterval: "5s",
+		TickerInterval: crowdsecUpdateInterval,
 		Origins:        crowdsecOrigins,
 	}
 	if err := bouncer.Init(); err != nil {

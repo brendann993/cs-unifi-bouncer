@@ -8,19 +8,20 @@ import (
 )
 
 var (
-	logLevel              string
-	crowdsecBouncerAPIKey string
-	crowdsecBouncerURL    string
-	unifiHost             string
-	unifiSite             string
-	username              string
-	password              string
-	useIPV6               bool
-	maxGroupSize          int
-	ipv4StartRuleIndex    int
-	ipv6StartRuleIndex    int
-	skipTLSVerify         bool
-	crowdsecOrigins       []string
+	logLevel               string
+	crowdsecBouncerAPIKey  string
+	crowdsecBouncerURL     string
+	crowdsecOrigins        []string
+	crowdsecUpdateInterval string
+	unifiHost              string
+	unifiSite              string
+	username               string
+	password               string
+	useIPV6                bool
+	maxGroupSize           int
+	ipv4StartRuleIndex     int
+	ipv6StartRuleIndex     int
+	skipTLSVerify          bool
 )
 
 func initConfig() {
@@ -29,6 +30,8 @@ func initConfig() {
 	viper.BindEnv("crowdsec_bouncer_api_key")
 	viper.BindEnv("crowdsec_url")
 	viper.SetDefault("crowdsec_url", "http://crowdsec:8080/")
+	viper.BindEnv("crowdsec_update_interval")
+	viper.SetDefault("crowdsec_update_interval", "5s")
 	viper.BindEnv("unifi_host")
 	viper.BindEnv("unifi_user")
 	viper.BindEnv("unifi_pass")
@@ -66,6 +69,8 @@ func initConfig() {
 	}
 
 	crowdsecOrigins = viper.GetStringSlice("crowdsec_origins")
+
+	crowdsecUpdateInterval = viper.GetString("crowdsec_update_interval")
 
 	unifiHost = viper.GetString("unifi_host")
 
