@@ -13,7 +13,7 @@ import (
 )
 
 type FirewallRuleCache struct {
-	id string
+	id      string
 	groupId string
 }
 
@@ -25,6 +25,7 @@ type unifiAddrList struct {
 	firewallGroupsIPv6 map[string]string
 	firewallRuleIPv4   map[string]FirewallRuleCache
 	firewallRuleIPv6   map[string]FirewallRuleCache
+	modified           bool
 }
 
 func main() {
@@ -35,7 +36,7 @@ func main() {
 	bouncer := &csbouncer.StreamBouncer{
 		APIKey:         crowdsecBouncerAPIKey,
 		APIUrl:         crowdsecBouncerURL,
-		TickerInterval: "5s",
+		TickerInterval: crowdsecUpdateInterval,
 		Origins:        crowdsecOrigins,
 	}
 	if err := bouncer.Init(); err != nil {
@@ -67,15 +68,13 @@ func main() {
 				return nil
 			case decisions := <-bouncer.Stream:
 				// Reset the inactivity timer
-				if !inactivityTimer.Stop() {
-					<-inactivityTimer.C
-				}
 				inactivityTimer.Reset(time.Second)
 
 				mal.decisionProcess(decisions)
 			case <-inactivityTimer.C:
 				// Execute the update to unifi when no new messages have been received
 				mal.updateFirewall(ctx)
+				mal.modified = false
 			}
 		}
 	})

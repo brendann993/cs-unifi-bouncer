@@ -51,6 +51,7 @@ func (mal *unifiAddrList) initUnifi(ctx context.Context) {
 	mal.firewallGroupsIPv6 = make(map[string]string)
 	mal.firewallRuleIPv4 = make(map[string]FirewallRuleCache)
 	mal.firewallRuleIPv6 = make(map[string]FirewallRuleCache)
+	mal.modified = false
 
 	// Check if firewall groups exist
 	groups, err := c.ListFirewallGroup(ctx, unifiSite)
@@ -227,6 +228,11 @@ func getKeys(m map[string]bool) []string {
 // Function to update the firewall group
 func (mal *unifiAddrList) updateFirewall(ctx context.Context) {
 
+	if !mal.modified {
+		log.Debug().Msg("No changes detected, skipping update")
+		return
+	}
+
 	// Get all cache IPv4 addresses
 	ipv4Addresses := getKeys(mal.cacheIpv4)
 
@@ -367,12 +373,14 @@ func (mal *unifiAddrList) add(decision *models.Decision) {
 		if mal.cacheIpv6[*decision.Value] {
 			log.Warn().Msgf("Address %s already present", *decision.Value)
 		} else {
+			mal.modified = true
 			mal.cacheIpv6[*decision.Value] = true
 		}
 	} else {
 		if mal.cacheIpv4[*decision.Value] {
 			log.Warn().Msgf("Address %s already present", *decision.Value)
 		} else {
+			mal.modified = true
 			mal.cacheIpv4[*decision.Value] = true
 		}
 	}
@@ -389,12 +397,14 @@ func (mal *unifiAddrList) remove(decision *models.Decision) {
 		}
 
 		if mal.cacheIpv6[*decision.Value] {
+			mal.modified = true
 			delete(mal.cacheIpv6, *decision.Value)
 		} else {
 			log.Warn().Msgf("%s not found in local cache", *decision.Value)
 		}
 	} else {
 		if mal.cacheIpv4[*decision.Value] {
+			mal.modified = true
 			delete(mal.cacheIpv4, *decision.Value)
 		} else {
 			log.Warn().Msgf("%s not found in local cache", *decision.Value)
