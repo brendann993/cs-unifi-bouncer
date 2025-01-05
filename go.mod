@@ -5,8 +5,8 @@ go 1.22.1
 toolchain go1.22.5
 
 require (
-	github.com/crowdsecurity/crowdsec v1.6.2
-	github.com/crowdsecurity/go-cs-bouncer v0.0.8
+	github.com/crowdsecurity/crowdsec v1.6.3
+	github.com/crowdsecurity/go-cs-bouncer v0.0.14
 	github.com/paultyng/go-unifi v1.34.0
 	github.com/rs/zerolog v1.29.1
 	github.com/spf13/viper v1.18.2
@@ -14,6 +14,9 @@ require (
 
 require (
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
+	github.com/blackfireio/osinfo v1.0.5 // indirect
+	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
+	github.com/expr-lang/expr v1.16.9 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/go-openapi/analysis v0.23.0 // indirect
 	github.com/go-openapi/errors v0.22.0 // indirect
@@ -27,12 +30,11 @@ require (
 )
 
 require (
-	github.com/antonmedv/expr v1.15.3 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/crowdsecurity/go-cs-lib v0.0.11 // indirect
+	github.com/crowdsecurity/go-cs-lib v0.0.15 // indirect
 	github.com/fatih/color v1.18.0 // indirect
-	github.com/goccy/go-yaml v1.11.0 // indirect
+	github.com/goccy/go-yaml v1.11.2 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.1 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
