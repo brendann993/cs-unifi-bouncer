@@ -17,7 +17,7 @@ A CrowdSec Bouncer for Unifi appliance
 > This was only tested with an UDM in a homelab environment. Further testing is needed
 
 > [!NOTE]  
-> Due to various quirks of the Unifi API this got more complicated than originally planneed.
+> Due to various quirks of the Unifi API this got more complicated than originally planneed. 
 
 
 # Description
