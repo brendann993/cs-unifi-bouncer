@@ -67,4 +67,4 @@ The bouncer configuration is made via environment variables:
 | `UNIFI_SKIP_TLS_VERIFY`       | Skips Certificate check for unifi controllers without proper SSL Certificate                                       | `false`                 |    ❌   |
 
 # Contribution
-Any constructive feedback is welcome, fill free to add an issue or a pull request. I will review it and integrate it to the code.
+Any constructive feedback is welcome, feel free to add an issue or a pull request. I will review it and integrate it to the code.
