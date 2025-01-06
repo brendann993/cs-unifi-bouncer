@@ -62,8 +62,8 @@ The bouncer configuration is made via environment variables:
 | `UNIFI_IPV6`                  | Enable / Disable IPv6 support                                                                                      | `true`                  |    ❌   |
 | `UNIFI_SITE`                  | Unifi Site Configuration in case of multiple sites                                                                 | `default`               |    ❌   |
 | `UNIFI_MAX_GROUP_SIZE`        | UDM has a max IP Group size of 10'000 This might be different for other appliances                                 | `10000`                 |    ❌   |
-| `UNIFI_IPV4_START_RULE_INDEX` | If you have other custom Rules defined in your Firewall this might need to be changed to prevent collisions        | `20000`                 |    ❌   |
-| `UNIFI_IPV6_START_RULE_INDEX` | If you have other custom Rules defined in your Firewall this might need to be changed to prevent collisions        | `25000`                 |    ❌   |
+| `UNIFI_IPV4_START_RULE_INDEX` | If you have other custom Rules defined in your Firewall this might need to be changed to prevent collisions        | `22000`                 |    ❌   |
+| `UNIFI_IPV6_START_RULE_INDEX` | If you have other custom Rules defined in your Firewall this might need to be changed to prevent collisions        | `27000`                 |    ❌   |
 | `UNIFI_SKIP_TLS_VERIFY`       | Skips Certificate check for unifi controllers without proper SSL Certificate                                       | `false`                 |    ❌   |
 
 # Contribution
