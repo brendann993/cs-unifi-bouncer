@@ -6,9 +6,7 @@ services:
     environment:
       CROWDSEC_BOUNCER_API_KEY: MyApiKey
       CROWDSEC_URL: "http://crowdsec:8080/"
-      UNIFI_HOST: "x.x.x.x:8728"
+      UNIFI_HOST: "https://yourunifi:443"
       UNIFI_USER: "api"
       UNIFI_PASS: "password"
     restart: unless-stopped
-
-
