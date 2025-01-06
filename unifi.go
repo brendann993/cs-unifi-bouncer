@@ -128,6 +128,7 @@ func (mal *unifiAddrList) postFirewallRule(ctx context.Context, index int, ID st
 		Ruleset:             ruleset,
 		SettingPreference:   "auto",
 		RuleIndex:           startRuleIndex + index,
+		Logging: 		     unifiLogging,
 	}
 
 	if !ipv6 {

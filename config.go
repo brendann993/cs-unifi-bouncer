@@ -22,6 +22,7 @@ var (
 	ipv4StartRuleIndex     int
 	ipv6StartRuleIndex     int
 	skipTLSVerify          bool
+	unifiLogging           bool
 )
 
 func initConfig() {
@@ -32,6 +33,8 @@ func initConfig() {
 	viper.SetDefault("crowdsec_url", "http://crowdsec:8080/")
 	viper.BindEnv("crowdsec_update_interval")
 	viper.SetDefault("crowdsec_update_interval", "5s")
+	viper.BindEnv("crowdsec_origins")
+	viper.SetDefault("crowdsec_origins", nil)
 	viper.BindEnv("unifi_host")
 	viper.BindEnv("unifi_user")
 	viper.BindEnv("unifi_pass")
@@ -49,8 +52,9 @@ func initConfig() {
 	viper.SetDefault("unifi_max_group_size", 10000)
 	viper.BindEnv("unifi_skip_tls_verify")
 	viper.SetDefault("unifi_skip_tls_verify", "false")
-	viper.BindEnv("crowdsec_origins")
-	viper.SetDefault("crowdsec_origins", nil)
+	viper.BindEnv("unifi_logging")
+	viper.SetDefault("unifi_logging", "false")
+	
 
 	logLevel = viper.GetString("log_level")
 	level, err := zerolog.ParseLevel(logLevel)
@@ -94,6 +98,8 @@ func initConfig() {
 	ipv6StartRuleIndex = viper.GetInt("unifi_ipv6_start_rule_index")
 
 	skipTLSVerify = viper.GetBool("unifi_skip_tls_verify")
+
+	unifiLogging = viper.GetBool("unifi_logging")
 
 	all := viper.AllSettings()
 	delete(all, "unifi_pass")

@@ -65,6 +65,7 @@ The bouncer configuration is made via environment variables:
 | `UNIFI_IPV4_START_RULE_INDEX` | If you have other custom Rules defined in your Firewall this might need to be changed to prevent collisions        | `22000`                 |    ❌   |
 | `UNIFI_IPV6_START_RULE_INDEX` | If you have other custom Rules defined in your Firewall this might need to be changed to prevent collisions        | `27000`                 |    ❌   |
 | `UNIFI_SKIP_TLS_VERIFY`       | Skips Certificate check for unifi controllers without proper SSL Certificate                                       | `false`                 |    ❌   |
+| `UNIFI_LOGGING`               | Generate Syslog entries when the firewall rules are matched                                                        | `false`                 |    ❌   |
 
 # Contribution
 Any constructive feedback is welcome, fill free to add an issue or a pull request. I will review it and integrate it to the code.
