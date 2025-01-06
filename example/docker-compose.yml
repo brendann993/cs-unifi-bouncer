@@ -9,6 +9,8 @@ services:
       UNIFI_HOST: "x.x.x.x:8728"
       UNIFI_USER: "api"
       UNIFI_PASS: "password"
+      UNIFI_IPV4_START_RULE_INDEX: 22000
+      UNIFI_IPV6_START_RULE_INDEX: 27000
     restart: unless-stopped
 
 
