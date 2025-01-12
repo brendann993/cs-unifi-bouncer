@@ -362,6 +362,11 @@ func (mal *unifiAddrList) updateFirewall(ctx context.Context) {
 
 func (mal *unifiAddrList) add(decision *models.Decision) {
 
+	if *decision.Type != "ban" {
+		log.Debug().Msgf("Ignore adding decision type %s", *decision.Type)
+		return
+	}
+
 	log.Info().Msgf("new decisions from %s: IP: %s | Scenario: %s | Duration: %s | Scope : %v", *decision.Origin, *decision.Value, *decision.Scenario, *decision.Duration, *decision.Scope)
 
 	if strings.Contains(*decision.Value, ":") {
@@ -387,6 +392,11 @@ func (mal *unifiAddrList) add(decision *models.Decision) {
 }
 
 func (mal *unifiAddrList) remove(decision *models.Decision) {
+
+	if *decision.Type != "ban" {
+		log.Debug().Msgf("Ignore removing decision type %s", *decision.Type)
+		return
+	}
 
 	log.Info().Msgf("removed decisions: IP: %s | Scenario: %s | Duration: %s | Scope : %v", *decision.Value, *decision.Scenario, *decision.Duration, *decision.Scope)
 
