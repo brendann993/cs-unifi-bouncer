@@ -13,8 +13,8 @@ A CrowdSec Bouncer for Unifi appliance
 ![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/teifun2/cs-unifi-bouncer)
 ![Docker Image Size (latest semver)](https://img.shields.io/docker/image-size/teifun2/cs-unifi-bouncer)
 
-> [!CAUTION]
-> This was only tested with an UDM in a homelab environment. Further testing is needed
+> [!WARNING]
+> This was tested with an UDM and UXG-Lite. Further testing is needed
 
 > [!NOTE]  
 > Due to various quirks of the Unifi API this got more complicated than originally planned. 
