@@ -13,6 +13,9 @@ A CrowdSec Bouncer for Unifi appliance
 ![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/teifun2/cs-unifi-bouncer)
 ![Docker Image Size (latest semver)](https://img.shields.io/docker/image-size/teifun2/cs-unifi-bouncer)
 
+> [!CAUTION]
+> This currently does not Support the new Zone Based Firewall. #6
+
 > [!WARNING]
 > This was tested with an UDM and UXG-Lite. Further testing is needed
 
