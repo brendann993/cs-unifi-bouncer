@@ -28,7 +28,11 @@ type unifiAddrList struct {
 	modified           bool
 }
 
+// This variable is set by the build process with ldflags
+var version = "unknown"
+
 func main() {
+	log.Info().Msg("Starting cs-unifi-bouncer with version: " + version)
 
 	// zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	initConfig()
@@ -38,6 +42,7 @@ func main() {
 		APIUrl:         crowdsecBouncerURL,
 		TickerInterval: crowdsecUpdateInterval,
 		Origins:        crowdsecOrigins,
+		UserAgent:      fmt.Sprintf("cs-unifi-bouncer/%s", version),
 	}
 	if err := bouncer.Init(); err != nil {
 		log.Fatal().Err(err).Msg("Bouncer init failed")
