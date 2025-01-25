@@ -47,8 +47,10 @@ jobs:
           KO_DOCKER_REPO: ghcr.io/teifun2
           TAGS: ${{ steps.meta.outputs.tags }}
           LABELS: ${{ steps.meta.outputs.labels }}
+          VERSION: ${{ steps.meta.outputs.version }}
           PLATFORMS: linux/amd64,linux/arm64,linux/arm
         run: |
           PTAGS=`echo $TAGS | sed 's/cs-unifi-bouncer://g'`
           export SOURCE_DATE_EPOCH=$(date +%s)
+          export GOFLAGS="-ldflags=-X=main.version=$VERSION"
           ko build -B --image-label "$LABELS" -t "$PTAGS" --platform=$PLATFORMS .
