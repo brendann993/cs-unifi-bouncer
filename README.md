@@ -34,15 +34,15 @@ This is a Fork of [funkolab/cs-mikrotik-bouncer](https://github.com/funkolab/cs-
 
 - [x] Dream Machine Pro (UDM-Pro)
 - [x] Dream Machine Pro SE (UDM-Pro-SE)
-- [] Dream Machine Pro Max (UDM-Pro-Max)
+- [ ] Dream Machine Pro Max (UDM-Pro-Max)
 - [x] Gateway Lite (UXG-Lite)
-- [] Gateway Pro (UXG-Pro)
-- [] Gateway Enterprise (UXG-Enterprise)
-- [] Cloud Gateway Max (UCG-Max)
-- [] Cloud Gateway Ultra (UCG-Ultra)
-- [] UniFi Express (UX)
-- [] Dream Wall (DW)
-- [] Enterprise Fortress Gateway (EFG)
+- [ ] Gateway Pro (UXG-Pro)
+- [ ] Gateway Enterprise (UXG-Enterprise)
+- [ ] Cloud Gateway Max (UCG-Max)
+- [ ] Cloud Gateway Ultra (UCG-Ultra)
+- [ ] UniFi Express (UX)
+- [ ] Dream Wall (DW)
+- [ ] Enterprise Fortress Gateway (EFG)
 
 # Usage
 For now, this web service is mainly thought to be used as a container.   
