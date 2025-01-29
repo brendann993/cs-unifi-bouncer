@@ -14,10 +14,10 @@ A CrowdSec Bouncer for Unifi appliance
 ![Docker Image Size (latest semver)](https://img.shields.io/docker/image-size/teifun2/cs-unifi-bouncer)
 
 > [!CAUTION]
-> This currently does not Support the new Zone Based Firewall. #6
+> This currently does not Support the new Zone Based Firewall. [#6](https://github.com/Teifun2/cs-unifi-bouncer/issues/6)
 
 > [!WARNING]
-> This was tested with an UDM and UXG-Lite. Further testing is needed
+> This was tested with the following [devices](#tested-devices). Further testing is needed
 
 > [!NOTE]  
 > Due to various quirks of the Unifi API this got more complicated than originally planned. 
@@ -29,6 +29,20 @@ For this it leverages [Unifi API](https://ubntwiki.com/products/software/unifi-c
 
 # Acknowledgment
 This is a Fork of [funkolab/cs-mikrotik-bouncer](https://github.com/funkolab/cs-mikrotik-bouncer) and would not have been possible without this previous work
+
+# Tested Devices
+
+- [x] Dream Machine Pro (UDM-Pro)
+- [x] Dream Machine Pro SE (UDM-Pro-SE)
+- [ ] Dream Machine Pro Max (UDM-Pro-Max)
+- [x] Gateway Lite (UXG-Lite)
+- [ ] Gateway Pro (UXG-Pro)
+- [ ] Gateway Enterprise (UXG-Enterprise)
+- [ ] Cloud Gateway Max (UCG-Max)
+- [ ] Cloud Gateway Ultra (UCG-Ultra)
+- [ ] UniFi Express (UX)
+- [ ] Dream Wall (DW)
+- [ ] Enterprise Fortress Gateway (EFG)
 
 # Usage
 For now, this web service is mainly thought to be used as a container.   
