@@ -14,7 +14,7 @@ A CrowdSec Bouncer for Unifi appliance
 ![Docker Image Size (latest semver)](https://img.shields.io/docker/image-size/teifun2/cs-unifi-bouncer)
 
 > [!CAUTION]
-> This currently does not Support the new Zone Based Firewall. #6
+> This currently does not Support the new Zone Based Firewall. [#6](https://github.com/Teifun2/cs-unifi-bouncer/issues/6)
 
 > [!WARNING]
 > This was tested with the following [devices](#tested-devices). Further testing is needed
