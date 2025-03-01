@@ -23,6 +23,8 @@ var (
 	ipv6StartRuleIndex     int
 	skipTLSVerify          bool
 	unifiLogging           bool
+	unifiZoneSrc           []string
+	unifiZoneDst           []string
 )
 
 func initConfig() {
@@ -54,7 +56,10 @@ func initConfig() {
 	viper.SetDefault("unifi_skip_tls_verify", "false")
 	viper.BindEnv("unifi_logging")
 	viper.SetDefault("unifi_logging", "false")
-	
+	viper.BindEnv("unifi_zone_src")
+	viper.SetDefault("unifi_zone_src", "External")
+	viper.BindEnv("unifi_zone_dst")
+	viper.SetDefault("unifi_zone_dst", "External Internal Vpn Hotspot")
 
 	logLevel = viper.GetString("log_level")
 	level, err := zerolog.ParseLevel(logLevel)
@@ -101,8 +106,6 @@ func initConfig() {
 
 	unifiLogging = viper.GetBool("unifi_logging")
 
-	all := viper.AllSettings()
-	delete(all, "unifi_pass")
-
-	log.Printf("Using config: %+v", all)
+	unifiZoneSrc = viper.GetStringSlice("unifi_zone_src")
+	unifiZoneDst = viper.GetStringSlice("unifi_zone_dst")
 }

@@ -109,9 +109,19 @@ func (mal *unifiAddrList) initUnifi(ctx context.Context) {
 		for _, zone := range zones {
 			mal.firewallZones[zone.Name] = ZoneCache{id: zone.ID}
 		}
-	}
 
-	// TODO: Check that all zones defined in Conifg are found!
+		// Check if source and destination zones are defined
+		for _, zone := range unifiZoneSrc {
+			if _, exists := mal.firewallZones[zone]; !exists {
+				log.Fatal().Msgf("Source Zone %s not found", zone)
+			}
+		}
+		for _, zone := range unifiZoneDst {
+			if _, exists := mal.firewallZones[zone]; !exists {
+				log.Fatal().Msgf("Destination Zone %s not found", zone)
+			}
+		}
+	}
 }
 
 // postFirewallRule creates or updates a firewall rule in the UniFi controller.
