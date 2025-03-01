@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/paultyng/go-unifi/unifi"
+	"github.com/filipowm/go-unifi/unifi"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/sync/errgroup"
 
@@ -18,7 +18,7 @@ type FirewallRuleCache struct {
 }
 
 type unifiAddrList struct {
-	c                  *unifi.Client
+	c                  unifi.Client
 	cacheIpv4          map[string]bool
 	cacheIpv6          map[string]bool
 	firewallGroupsIPv4 map[string]string

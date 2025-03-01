@@ -2,37 +2,33 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
-	"net/http"
-	"net/http/cookiejar"
 	"strconv"
 	"strings"
 
 	"github.com/crowdsecurity/crowdsec/pkg/models"
-	"github.com/paultyng/go-unifi/unifi"
+	"github.com/filipowm/go-unifi/unifi"
 	"github.com/rs/zerolog/log"
 )
 
-func dial(ctx context.Context) (*unifi.Client, error) {
-	client := unifi.Client{}
-	client.SetBaseURL(unifiHost)
-	if skipTLSVerify {
-		httpClient := &http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-			},
-		}
-		jar, _ := cookiejar.New(nil)
-		httpClient.Jar = jar
-		client.SetHTTPClient(httpClient)
-	}
-	err := client.Login(ctx, username, password)
+func dial(ctx context.Context) (unifi.Client, error) {
+	client, err := unifi.NewClient(
+		&unifi.ClientConfig{
+			URL: unifiHost,
+			User: unifiUsername,
+			Password: unifiPassword,
+		},
+	)
+
+	// TODO: Is this no longer needed?
+	// 	jar, _ := cookiejar.New(nil)
+	// 	httpClient.Jar = jar
+	// 	client.SetHTTPClient(httpClient)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return &client, nil
+	return client, nil
 }
 
 func (mal *unifiAddrList) initUnifi(ctx context.Context) {
@@ -41,7 +37,7 @@ func (mal *unifiAddrList) initUnifi(ctx context.Context) {
 
 	c, err := dial(ctx)
 	if err != nil {
-		log.Fatal().Err(err).Str("host", unifiHost).Str("username", username).Msg("Connection failed")
+		log.Fatal().Err(err).Str("host", unifiHost).Str("username", unifiUsername).Msg("Connection failed")
 	}
 
 	mal.c = c
