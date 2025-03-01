@@ -15,8 +15,8 @@ var (
 	crowdsecUpdateInterval string
 	unifiHost              string
 	unifiSite              string
-	username               string
-	password               string
+	unifiUsername          string
+	unifiPassword          string
 	useIPV6                bool
 	maxGroupSize           int
 	ipv4StartRuleIndex     int
@@ -78,13 +78,13 @@ func initConfig() {
 
 	unifiHost = viper.GetString("unifi_host")
 
-	username = viper.GetString("unifi_user")
-	if username == "" {
+	unifiUsername = viper.GetString("unifi_user")
+	if unifiUsername == "" {
 		log.Fatal().Msg("Unifi username is not set")
 	}
 
-	password = viper.GetString("unifi_pass")
-	if password == "" {
+	unifiPassword = viper.GetString("unifi_pass")
+	if unifiPassword == "" {
 		log.Fatal().Msg("Unifi password is not set")
 	}
 
