@@ -13,8 +13,8 @@ import (
 func dial(ctx context.Context) (unifi.Client, error) {
 	client, err := unifi.NewClient(
 		&unifi.ClientConfig{
-			URL: unifiHost,
-			User: unifiUsername,
+			URL:      unifiHost,
+			User:     unifiUsername,
 			Password: unifiPassword,
 		},
 	)
@@ -48,6 +48,19 @@ func (mal *unifiAddrList) initUnifi(ctx context.Context) {
 	mal.firewallRuleIPv4 = make(map[string]FirewallRuleCache)
 	mal.firewallRuleIPv6 = make(map[string]FirewallRuleCache)
 	mal.modified = false
+	mal.isZoneBased = false
+
+	// Check if zone-based firewall is enabled
+	networks, err := c.ListNetwork(ctx, unifiSite)
+
+	if networks[0].FirewallZoneID != "" {
+		mal.isZoneBased = true
+	}
+	log.Info().Msgf("Zone Based Firewall: %t", mal.isZoneBased)
+
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to get networks")
+	}
 
 	// Check if firewall groups exist
 	groups, err := c.ListFirewallGroup(ctx, unifiSite)
@@ -124,7 +137,7 @@ func (mal *unifiAddrList) postFirewallRule(ctx context.Context, index int, ID st
 		Ruleset:             ruleset,
 		SettingPreference:   "auto",
 		RuleIndex:           startRuleIndex + index,
-		Logging: 		     unifiLogging,
+		Logging:             unifiLogging,
 	}
 
 	if !ipv6 {

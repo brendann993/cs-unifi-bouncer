@@ -26,6 +26,7 @@ type unifiAddrList struct {
 	firewallRuleIPv4   map[string]FirewallRuleCache
 	firewallRuleIPv6   map[string]FirewallRuleCache
 	modified           bool
+	isZoneBased        bool
 }
 
 // This variable is set by the build process with ldflags
