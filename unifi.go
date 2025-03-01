@@ -49,6 +49,7 @@ func (mal *unifiAddrList) initUnifi(ctx context.Context) {
 	mal.firewallRuleIPv6 = make(map[string]FirewallRuleCache)
 	mal.modified = false
 	mal.isZoneBased = false
+	mal.firewallZones = make(map[string]ZoneCache)
 
 	// Check if zone-based firewall is enabled
 	networks, err := c.ListNetwork(ctx, unifiSite)
@@ -97,6 +98,20 @@ func (mal *unifiAddrList) initUnifi(ctx context.Context) {
 			mal.firewallRuleIPv6[rule.Name] = FirewallRuleCache{id: rule.ID, groupId: rule.SrcFirewallGroupIDs[0]}
 		}
 	}
+
+	// Cache Firewall Zones
+	if mal.isZoneBased {
+		zones, err := c.ListFirewallZone(ctx, unifiSite)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to get firewall zones")
+		}
+
+		for _, zone := range zones {
+			mal.firewallZones[zone.Name] = ZoneCache{id: zone.ID}
+		}
+	}
+
+	// TODO: Check that all zones defined in Conifg are found!
 }
 
 // postFirewallRule creates or updates a firewall rule in the UniFi controller.

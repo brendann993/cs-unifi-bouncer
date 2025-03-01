@@ -17,6 +17,10 @@ type FirewallRuleCache struct {
 	groupId string
 }
 
+type ZoneCache struct {
+	id string
+}
+
 type unifiAddrList struct {
 	c                  unifi.Client
 	cacheIpv4          map[string]bool
@@ -27,6 +31,7 @@ type unifiAddrList struct {
 	firewallRuleIPv6   map[string]FirewallRuleCache
 	modified           bool
 	isZoneBased        bool
+	firewallZones      map[string]ZoneCache
 }
 
 // This variable is set by the build process with ldflags
