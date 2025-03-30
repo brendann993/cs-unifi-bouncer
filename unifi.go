@@ -18,6 +18,7 @@ func dial(ctx context.Context) (unifi.Client, error) {
 			User:     unifiUsername,
 			Password: unifiPassword,
 			APIKey:   unifiAPIKey,
+			VerifySSL: !skipTLSVerify,
 		},
 	)
 
