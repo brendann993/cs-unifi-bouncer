@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/crowdsecurity/crowdsec/pkg/models"
@@ -189,7 +190,7 @@ func (mal *unifiAddrList) updateFirewall(ctx context.Context, ipv6 bool) {
 		}
 
 		// Post the firewall group
-		groupID = mal.postFirewallGroup(ctx, i/maxGroupSize, groupID, groupName, ipv6, group)
+		groupID = mal.postFirewallGroup(ctx, groupID, groupName, ipv6, group)
 
 		if mal.isZoneBased {
 			for _, zoneSrc := range unifiZoneSrc {
@@ -204,7 +205,7 @@ func (mal *unifiAddrList) updateFirewall(ctx context.Context, ipv6 bool) {
 					}
 					// Post the firewall rule, skip if the group ID is the same as the cached one (no changes)
 					if groupID != "" && groupID != cachedGroupId {
-						mal.postFirewallPolicy(ctx, i/maxGroupSize, policyId, policyName, false, groupID, zoneSrc, zoneDst)
+						mal.postFirewallPolicy(ctx, policyId, policyName, false, groupID, zoneSrc, zoneDst)
 					}
 				}
 			}
@@ -225,30 +226,73 @@ func (mal *unifiAddrList) updateFirewall(ctx context.Context, ipv6 bool) {
 		}
 	}
 
-	// Delete old rules and groups that are no longer needed with an index higher than numGroups
-	// for i := numGroups; ; i++ {
-	// 	name := "cs-unifi-bouncer-ipv4-" + strconv.Itoa(i)
-	// 	ruleCache, exists := mal.firewallRule[name]
-	// 	if !exists {
-	// 		break
-	// 	}
-	// 	// TODO: Needs more logic to remove all policies or rules
-	// 	err := mal.c.DeleteFirewallRule(ctx, unifiSite, ruleCache.id)
-	// 	if err != nil {
-	// 		log.Error().Err(err).Msgf("Failed to delete old firewall rule: %s", name)
-	// 	} else {
-	// 		log.Info().Msgf("Deleted old firewall rule: %s", name)
-	// 		delete(mal.firewallRule, name)
-	// 	}
+	// Delete old firewall rules
+	for ruleName, ruleCache := range mal.firewallRule[ipv6] {
+		// Check if the rule index is lower than numGroups
+		parts := strings.Split(ruleName, "-")
+		index, err := strconv.Atoi(parts[4])
+		if err != nil {
+			log.Warn().Msgf("Invalid rule index in name: %s", ruleName)
+			continue
+		}
+		// If isZoneBased, then delete all rules independent of index
+		if !mal.isZoneBased && (err != nil || index >= numGroups) {
+			continue
+		}
+		// Delete the old firewall rule
+		err = mal.c.DeleteFirewallRule(ctx, unifiSite, ruleCache.id)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed to delete old firewall rule: %s", ruleName)
+		} else {
+			log.Info().Msgf("Deleted old firewall rule: %s", ruleName)
+			delete(mal.firewallRule[ipv6], ruleName)
+		}
+	}
 
-	// 	err = mal.c.DeleteFirewallGroup(ctx, unifiSite, ruleCache.groupId)
-	// 	if err != nil {
-	// 		log.Error().Err(err).Msgf("Failed to delete old firewall group: %s", name)
-	// 	} else {
-	// 		log.Info().Msgf("Deleted old firewall group: %s", name)
-	// 		delete(mal.firewallGroups, name)
-	// 	}
-	// }
+	// Delete old firewall policies
+	for policyName, policyCache := range mal.firewallZonePolicy[ipv6] {
+		// Check if the policy index is higher than numGroups
+		parts := strings.Split(policyName, "-")
+		index, err := strconv.Atoi(parts[6])
+		if err != nil {
+			log.Warn().Msgf("Invalid policy index in name: %s", policyName)
+			continue
+		}
+		// If isZoneBased is false, then delete all policies independent of index
+		if mal.isZoneBased && (err != nil || index < numGroups) {
+			continue
+		}
+		// Delete the old firewall policy
+		err = mal.c.DeleteFirewallZonePolicy(ctx, unifiSite, policyCache.id)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed to delete old firewall policy: %s", policyName)
+		} else {
+			log.Info().Msgf("Deleted old firewall policy: %s", policyName)
+			delete(mal.firewallZonePolicy[ipv6], policyName)
+		}
+	}
+
+	// Delete old firewall groups
+	for groupName, groupId := range mal.firewallGroups[ipv6] {
+		// Check if the group index is higher than numGroups
+		parts := strings.Split(groupName, "-")
+		index, err := strconv.Atoi(parts[4])
+		if err != nil {
+			log.Warn().Msgf("Invalid group index in name: %s", groupName)
+			continue
+		}
+		if err != nil || index < numGroups {
+			continue
+		}
+		// Delete the old firewall group
+		err = mal.c.DeleteFirewallGroup(ctx, unifiSite, groupId)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed to delete old firewall group: %s", groupName)
+		} else {
+			log.Info().Msgf("Deleted old firewall group: %s", groupName)
+			delete(mal.firewallGroups[ipv6], groupName)
+		}
+	}
 }
 
 func (mal *unifiAddrList) add(decision *models.Decision) {
