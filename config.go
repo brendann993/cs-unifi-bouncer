@@ -17,6 +17,7 @@ var (
 	unifiSite              string
 	unifiUsername          string
 	unifiPassword          string
+	unifiAPIKey            string
 	useIPV6                bool
 	maxGroupSize           int
 	ipv4StartRuleIndex     int
@@ -38,6 +39,7 @@ func initConfig() {
 	viper.BindEnv("unifi_host")
 	viper.BindEnv("unifi_user")
 	viper.BindEnv("unifi_pass")
+	viper.BindEnv("unifi_api_key")
 	viper.BindEnv("unifi_site")
 	viper.SetDefault("unifi_site", "default")
 	viper.BindEnv("unifi_ipv6")
@@ -54,7 +56,6 @@ func initConfig() {
 	viper.SetDefault("unifi_skip_tls_verify", "false")
 	viper.BindEnv("unifi_logging")
 	viper.SetDefault("unifi_logging", "false")
-	
 
 	logLevel = viper.GetString("log_level")
 	level, err := zerolog.ParseLevel(logLevel)
@@ -78,14 +79,19 @@ func initConfig() {
 
 	unifiHost = viper.GetString("unifi_host")
 
+	unifiAPIKey = viper.GetString("unifi_api_key")
+	if unifiAPIKey == "" && viper.GetString("unifi_user") == "" {
+		log.Fatal().Msg("Unifi username or API key is not set")
+	}
+
 	unifiUsername = viper.GetString("unifi_user")
-	if unifiUsername == "" {
-		log.Fatal().Msg("Unifi username is not set")
+	if unifiUsername == "" && unifiAPIKey == "" {
+		log.Fatal().Msg("Unifi username or API key is not set")
 	}
 
 	unifiPassword = viper.GetString("unifi_pass")
-	if unifiPassword == "" {
-		log.Fatal().Msg("Unifi password is not set")
+	if unifiPassword == "" && unifiAPIKey == "" {
+		log.Fatal().Msg("Unifi password or API key is not set")
 	}
 
 	unifiSite = viper.GetString("unifi_site")

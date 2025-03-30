@@ -2,27 +2,39 @@ package main
 
 import (
 	"context"
+	"errors"
 	"strconv"
 	"strings"
 
 	"github.com/crowdsecurity/crowdsec/pkg/models"
 	"github.com/filipowm/go-unifi/unifi"
+	"github.com/filipowm/go-unifi/unifi/features"
 	"github.com/rs/zerolog/log"
 )
 
 func dial(ctx context.Context) (unifi.Client, error) {
-	client, err := unifi.NewClient(
-		&unifi.ClientConfig{
-			URL: unifiHost,
-			User: unifiUsername,
-			Password: unifiPassword,
-		},
-	)
+	var client unifi.Client
+	var err error
 
-	// TODO: Is this no longer needed?
-	// 	jar, _ := cookiejar.New(nil)
-	// 	httpClient.Jar = jar
-	// 	client.SetHTTPClient(httpClient)
+	if unifiAPIKey != "" {
+		client, err = unifi.NewClient(
+			&unifi.ClientConfig{
+				URL:            unifiHost,
+				APIKey:         unifiAPIKey,
+				VerifySSL:      skipTLSVerify,
+				ValidationMode: unifi.SoftValidation,
+			},
+		)
+	} else {
+		client, err = unifi.NewClient(&unifi.ClientConfig{
+			URL:            unifiHost,
+			User:           unifiUsername,
+			Password:       unifiPassword,
+			VerifySSL:      skipTLSVerify,
+			ValidationMode: unifi.SoftValidation,
+		},
+		)
+	}
 
 	if err != nil {
 		return nil, err
@@ -31,13 +43,26 @@ func dial(ctx context.Context) (unifi.Client, error) {
 	return client, nil
 }
 
+func (mal *unifiAddrList) isZoneBasedFirewallEnabled(ctx context.Context) bool {
+	f, err := mal.c.GetFeature(ctx, "default", features.ZoneBasedFirewallMigration)
+	if err != nil {
+		if errors.Is(err, unifi.ErrNotFound) {
+			log.Printf("Feature %s unavailable (not found)", features.ZoneBasedFirewallMigration)
+			return false
+		}
+		log.Fatal().Err(err).Msg("Error getting feature")
+	}
+
+	return f.FeatureExists
+}
+
 func (mal *unifiAddrList) initUnifi(ctx context.Context) {
 
 	log.Info().Msg("Connecting to unifi")
 
 	c, err := dial(ctx)
 	if err != nil {
-		log.Fatal().Err(err).Str("host", unifiHost).Str("username", unifiUsername).Msg("Connection failed")
+		log.Fatal().Err(err).Str("host", unifiHost).Msg("Connection failed")
 	}
 
 	mal.c = c
@@ -71,88 +96,176 @@ func (mal *unifiAddrList) initUnifi(ctx context.Context) {
 	}
 
 	// Check if firewall rules exists
-	rules, err := mal.c.ListFirewallRule(ctx, unifiSite)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to get firewall rules")
-	}
-
-	for _, rule := range rules {
-		if strings.Contains(rule.Name, "cs-unifi-bouncer-ipv4") {
-			mal.firewallRuleIPv4[rule.Name] = FirewallRuleCache{id: rule.ID, groupId: rule.SrcFirewallGroupIDs[0]}
+	if mal.isZoneBasedFirewallEnabled(ctx) {
+		rules, err := mal.c.ListFirewallZonePolicy(ctx, unifiSite)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to get firewall zone policies")
 		}
-		if strings.Contains(rule.Name, "cs-unifi-bouncer-ipv6") {
-			mal.firewallRuleIPv6[rule.Name] = FirewallRuleCache{id: rule.ID, groupId: rule.SrcFirewallGroupIDs[0]}
+
+		for _, rule := range rules {
+			if strings.Contains(rule.Name, "cs-unifi-bouncer-ipv4") {
+				mal.firewallRuleIPv4[rule.Name] = FirewallRuleCache{id: rule.ID, groupId: rule.Source.IPGroupID}
+			}
+			if strings.Contains(rule.Name, "cs-unifi-bouncer-ipv6") {
+				mal.firewallRuleIPv6[rule.Name] = FirewallRuleCache{id: rule.ID, groupId: rule.Source.IPGroupID}
+			}
+		}
+	} else {
+		// If zone-based firewall is not enabled, use FirewallRule
+		// Get the list of firewall rules
+
+		rules, err := mal.c.ListFirewallRule(ctx, unifiSite)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to get firewall rules")
+		}
+
+		for _, rule := range rules {
+			if strings.Contains(rule.Name, "cs-unifi-bouncer-ipv4") {
+				mal.firewallRuleIPv4[rule.Name] = FirewallRuleCache{id: rule.ID, groupId: rule.SrcFirewallGroupIDs[0]}
+			}
+			if strings.Contains(rule.Name, "cs-unifi-bouncer-ipv6") {
+				mal.firewallRuleIPv6[rule.Name] = FirewallRuleCache{id: rule.ID, groupId: rule.SrcFirewallGroupIDs[0]}
+			}
 		}
 	}
 }
 
 // postFirewallRule creates or updates a firewall rule in the UniFi controller.
-// The rule will drop all traffic from the specified source firewall group IDs.
+// It constructs the rule name and type based on the provided parameters and
+// either updates an existing rule if an ID is provided or creates a new one.
 //
 // Parameters:
 // - ctx: The context for the request.
 // - index: An integer used to generate the rule name and differentiate between rules.
 // - ID: The ID of the firewall rule to update. If empty, a new rule will be created.
-// - ipv6: A boolean indicating whether the rule is for IPv6 traffic.
-// - groupIds: A slice of strings containing the source firewall group IDs.
+// - ipv6: A boolean indicating whether the rule is for IPv6 addresses.
+// - groupId: The ID of the firewall group to use in the rule.
 //
-// The function constructs a firewall rule with the specified parameters and either
-// updates an existing rule or creates a new one in the UniFi controller. If the
-// operation fails, it logs a fatal error. Otherwise, it logs an informational message.
+// The function logs a fatal error if the operation fails, otherwise it logs a success message.
 func (mal *unifiAddrList) postFirewallRule(ctx context.Context, index int, ID string, ipv6 bool, groupId string) {
+	// Check if zone based firewall is enabled
+	zoneBasedFirewallEnabled := mal.isZoneBasedFirewallEnabled(ctx)
+
 	name := "cs-unifi-bouncer-ipv4-" + strconv.Itoa(index)
 	if ipv6 {
 		name = "cs-unifi-bouncer-ipv6-" + strconv.Itoa(index)
 	}
 
-	ruleset := "WAN_IN"
-	if ipv6 {
-		ruleset = "WANv6_IN"
-	}
-
-	startRuleIndex := ipv4StartRuleIndex
-	if ipv6 {
-		startRuleIndex = ipv6StartRuleIndex
-	}
-
-	firewallRule := &unifi.FirewallRule{
-		Action:              "drop",
-		Enabled:             true,
-		Name:                name,
-		SrcFirewallGroupIDs: []string{groupId},
-		Protocol:            "all",
-		Ruleset:             ruleset,
-		SettingPreference:   "auto",
-		RuleIndex:           startRuleIndex + index,
-		Logging: 		     unifiLogging,
-	}
-
-	if !ipv6 {
-		firewallRule.SrcNetworkType = "NETv4"
-		firewallRule.DstNetworkType = "NETv4"
-	}
-
-	var err error
-	var newFirewallRule *unifi.FirewallRule
-
-	if ID != "" {
-		firewallRule.ID = ID
-		_, err = mal.c.UpdateFirewallRule(ctx, unifiSite, firewallRule)
-	} else {
-		newFirewallRule, err = mal.c.CreateFirewallRule(ctx, unifiSite, firewallRule)
-	}
-
-	if err != nil {
-		log.Fatal().Err(err).Msgf("Failed to post firewall rule: %v", firewallRule)
-	} else {
-		if newFirewallRule != nil {
-			firewallRule = newFirewallRule
-		}
-		log.Info().Msg("Firewall Rule posted")
+	if zoneBasedFirewallEnabled {
+		IPVersion := "IPV4"
+		startRuleIndex := ipv4StartRuleIndex
 		if ipv6 {
-			mal.firewallRuleIPv6[firewallRule.Name] = FirewallRuleCache{id: firewallRule.ID, groupId: groupId}
+			IPVersion = "IPV6"
+			startRuleIndex = ipv6StartRuleIndex
+		}
+
+		// Get the zone ID for the external zone
+		externalZoneID, externalErr := mal.getFirewallZoneID(ctx, unifiSite, "External")
+		if externalErr != nil {
+			log.Fatal().Err(externalErr).Msgf("Failed to get firewall zone ID: %v", "External")
+		}
+
+		// Get the zone ID for the internal zone
+		internalZoneID, internalErr := mal.getFirewallZoneID(ctx, unifiSite, "Internal")
+		if internalErr != nil {
+			log.Fatal().Err(internalErr).Msgf("Failed to get firewall zone ID: %v", "Internal")
+		}
+
+		zonePolicy := &unifi.FirewallZonePolicy{
+			Action:    "BLOCK",
+			Enabled:   true,
+			Name:      name,
+			Protocol:  "all",
+			IPVersion: IPVersion,
+			Index:     startRuleIndex + index,
+			Logging:   unifiLogging,
+			Source: unifi.FirewallZonePolicySource{
+				ZoneID:             externalZoneID,
+				MatchingTargetType: "OBJECT",
+				MatchingTarget:     "IP",
+				IPGroupID:          groupId,
+			},
+			Destination: unifi.FirewallZonePolicyDestination{
+				ZoneID: internalZoneID,
+			},
+			Schedule: unifi.FirewallZonePolicySchedule{
+				Mode: "ALWAYS",
+			},
+		}
+
+		var err error
+		var newFirewallZonePolicy *unifi.FirewallZonePolicy
+
+		if ID != "" {
+			zonePolicy.ID = ID
+			_, err = mal.c.UpdateFirewallZonePolicy(ctx, unifiSite, zonePolicy)
 		} else {
-			mal.firewallRuleIPv4[firewallRule.Name] = FirewallRuleCache{id: firewallRule.ID, groupId: groupId}
+			newFirewallZonePolicy, err = mal.c.CreateFirewallZonePolicy(ctx, unifiSite, zonePolicy)
+		}
+
+		if err != nil {
+			log.Fatal().Err(err).Msgf("Failed to post firewall zone policy: %v", zonePolicy)
+		} else {
+			if newFirewallZonePolicy != nil {
+				zonePolicy = newFirewallZonePolicy
+			}
+			log.Info().Msg("Firewall Zone Policy posted")
+			if ipv6 {
+				mal.firewallRuleIPv6[name] = FirewallRuleCache{id: zonePolicy.ID, groupId: groupId}
+			} else {
+				mal.firewallRuleIPv4[name] = FirewallRuleCache{id: zonePolicy.ID, groupId: groupId}
+			}
+		}
+	} else {
+		ruleset := "WAN_IN"
+		if ipv6 {
+			ruleset = "WANv6_IN"
+		}
+
+		startRuleIndex := ipv4StartRuleIndex
+		if ipv6 {
+			startRuleIndex = ipv6StartRuleIndex
+		}
+
+		firewallRule := &unifi.FirewallRule{
+			Action:              "drop",
+			Enabled:             true,
+			Name:                name,
+			SrcFirewallGroupIDs: []string{groupId},
+			Protocol:            "all",
+			Ruleset:             ruleset,
+			SettingPreference:   "auto",
+			RuleIndex:           startRuleIndex + index,
+			Logging:             unifiLogging,
+		}
+
+		if !ipv6 {
+			firewallRule.SrcNetworkType = "NETv4"
+			firewallRule.DstNetworkType = "NETv4"
+		}
+
+		var err error
+		var newFirewallRule *unifi.FirewallRule
+
+		if ID != "" {
+			firewallRule.ID = ID
+			_, err = mal.c.UpdateFirewallRule(ctx, unifiSite, firewallRule)
+		} else {
+			newFirewallRule, err = mal.c.CreateFirewallRule(ctx, unifiSite, firewallRule)
+		}
+
+		if err != nil {
+			log.Fatal().Err(err).Msgf("Failed to post firewall rule: %v", firewallRule)
+		} else {
+			if newFirewallRule != nil {
+				firewallRule = newFirewallRule
+			}
+			log.Info().Msg("Firewall Rule posted")
+			if ipv6 {
+				mal.firewallRuleIPv6[firewallRule.Name] = FirewallRuleCache{id: firewallRule.ID, groupId: groupId}
+			} else {
+				mal.firewallRuleIPv4[firewallRule.Name] = FirewallRuleCache{id: firewallRule.ID, groupId: groupId}
+			}
 		}
 	}
 }
@@ -211,6 +324,21 @@ func (mal *unifiAddrList) postFirewallGroup(ctx context.Context, index int, ID s
 		}
 		return group.ID
 	}
+}
+
+func (mal *unifiAddrList) getFirewallZoneID(ctx context.Context, site string, zoneName string) (string, error) {
+	zones, err := mal.c.ListFirewallZone(ctx, site)
+	if err != nil {
+		return "", err
+	}
+
+	for _, zone := range zones {
+		if zone.Name == zoneName {
+			return zone.ID, nil
+		}
+	}
+
+	return "", errors.New("zone not found")
 }
 
 // Function to get keys from a map
@@ -276,15 +404,26 @@ func (mal *unifiAddrList) updateFirewall(ctx context.Context) {
 			break
 		}
 
-		err := mal.c.DeleteFirewallRule(ctx, unifiSite, ruleCache.id)
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed to delete old firewall rule: %s", name)
+		// Handle deletion of old rules or zone policies
+		if mal.isZoneBasedFirewallEnabled(ctx) {
+			err := mal.c.DeleteFirewallZonePolicy(ctx, unifiSite, ruleCache.id)
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed to delete old firewall zone policy: %s", name)
+			} else {
+				log.Info().Msgf("Deleted old firewall zone policy: %s", name)
+				delete(mal.firewallRuleIPv4, name)
+			}
 		} else {
-			log.Info().Msgf("Deleted old firewall rule: %s", name)
-			delete(mal.firewallRuleIPv4, name)
+			err := mal.c.DeleteFirewallRule(ctx, unifiSite, ruleCache.id)
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed to delete old firewall rule: %s", name)
+			} else {
+				log.Info().Msgf("Deleted old firewall rule: %s", name)
+				delete(mal.firewallRuleIPv4, name)
+			}
 		}
 
-		err = mal.c.DeleteFirewallGroup(ctx, unifiSite, ruleCache.groupId)
+		err := mal.c.DeleteFirewallGroup(ctx, unifiSite, ruleCache.groupId)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed to delete old firewall group: %s", name)
 		} else {
@@ -339,20 +478,31 @@ func (mal *unifiAddrList) updateFirewall(ctx context.Context) {
 			break
 		}
 
-		err := mal.c.DeleteFirewallRule(ctx, unifiSite, ruleCache.id)
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed to delete old firewall rule: %s", groupName)
+		// Handle deletion of old rules or zone policies
+		if mal.isZoneBasedFirewallEnabled(ctx) {
+			err := mal.c.DeleteFirewallZonePolicy(ctx, unifiSite, ruleCache.id)
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed to delete old firewall zone policy: %s", groupName)
+			} else {
+				log.Info().Msgf("Deleted old firewall zone policy: %s", groupName)
+				delete(mal.firewallRuleIPv6, groupName)
+			}
 		} else {
-			log.Info().Msgf("Deleted old firewall rule: %s", groupName)
-			delete(mal.firewallRuleIPv6, groupName)
-		}
+			err := mal.c.DeleteFirewallRule(ctx, unifiSite, ruleCache.id)
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed to delete old firewall rule: %s", groupName)
+			} else {
+				log.Info().Msgf("Deleted old firewall rule: %s", groupName)
+				delete(mal.firewallRuleIPv6, groupName)
+			}
 
-		err = mal.c.DeleteFirewallGroup(ctx, unifiSite, ruleCache.groupId)
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed to delete old firewall group: %s", groupName)
-		} else {
-			log.Info().Msgf("Deleted old firewall group: %s", groupName)
-			delete(mal.firewallGroupsIPv6, groupName)
+			err = mal.c.DeleteFirewallGroup(ctx, unifiSite, ruleCache.groupId)
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed to delete old firewall group: %s", groupName)
+			} else {
+				log.Info().Msgf("Deleted old firewall group: %s", groupName)
+				delete(mal.firewallGroupsIPv6, groupName)
+			}
 		}
 	}
 }
