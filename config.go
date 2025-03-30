@@ -15,6 +15,7 @@ var (
 	crowdsecUpdateInterval string
 	unifiHost              string
 	unifiSite              string
+	unifiAPIKey            string
 	unifiUsername          string
 	unifiPassword          string
 	useIPV6                bool
@@ -38,6 +39,7 @@ func initConfig() {
 	viper.BindEnv("crowdsec_origins")
 	viper.SetDefault("crowdsec_origins", nil)
 	viper.BindEnv("unifi_host")
+	viper.BindEnv("unifi_api_key")
 	viper.BindEnv("unifi_user")
 	viper.BindEnv("unifi_pass")
 	viper.BindEnv("unifi_site")
@@ -83,14 +85,12 @@ func initConfig() {
 
 	unifiHost = viper.GetString("unifi_host")
 
+	unifiAPIKey = viper.GetString("unifi_api_key")
 	unifiUsername = viper.GetString("unifi_user")
-	if unifiUsername == "" {
-		log.Fatal().Msg("Unifi username is not set")
-	}
-
 	unifiPassword = viper.GetString("unifi_pass")
-	if unifiPassword == "" {
-		log.Fatal().Msg("Unifi password is not set")
+
+	if (unifiAPIKey == "" && (unifiUsername == "" || unifiPassword == "")) {
+		log.Fatal().Msg("Unifi API key or username/password is not set")
 	}
 
 	unifiSite = viper.GetString("unifi_site")

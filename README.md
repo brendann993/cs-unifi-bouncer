@@ -74,8 +74,9 @@ The bouncer configuration is made via environment variables:
 | `CROWDSEC_UPDATE_INTERVAL`    | Interval Frequency Querying the Crowdsec API for changes to the blocklist.                                         | `5s`                            |    ❌   |
 | `LOG_LEVEL`                   | Minimum log level for bouncer in [zerolog levels](https://pkg.go.dev/github.com/rs/zerolog#readme-leveled-logging) | `1`                             |    ❌   |
 | `UNIFI_HOST`                  | Unifi appliance address                                                                                            | `none`                          |    ✅   |
-| `UNIFI_USER`                  | Unifi appliance username                                                                                           | `none`                          |    ✅   |
-| `UNIFI_PASS`                  | Unifi appliance password                                                                                           | `none`                          |    ✅   |
+| `UNIFI_API_KEY`               | Unifi appliance API key                                                                                            | `none`                          | ✅ / ❌ |
+| `UNIFI_USER`                  | Unifi appliance username                                                                                           | `none`                          | ✅ / ❌ |
+| `UNIFI_PASS`                  | Unifi appliance password                                                                                           | `none`                          | ✅ / ❌ |
 | `UNIFI_IPV6`                  | Enable / Disable IPv6 support                                                                                      | `true`                          |    ❌   |
 | `UNIFI_SITE`                  | Unifi Site Configuration in case of multiple sites                                                                 | `default`                       |    ❌   |
 | `UNIFI_MAX_GROUP_SIZE`        | UDM has a max IP Group size of 10'000 This might be different for other appliances                                 | `10000`                         |    ❌   |

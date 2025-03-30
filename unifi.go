@@ -16,6 +16,7 @@ func dial(ctx context.Context) (unifi.Client, error) {
 			URL:      unifiHost,
 			User:     unifiUsername,
 			Password: unifiPassword,
+			APIKey:   unifiAPIKey,
 		},
 	)
 
