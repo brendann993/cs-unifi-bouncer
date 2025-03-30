@@ -12,14 +12,8 @@ A CrowdSec Bouncer for Unifi appliance
 [![ci](https://github.com/teifun2/cs-unifi-bouncer/actions/workflows/container-release.yaml/badge.svg)](https://github.com/teifun2/cs-unifi-bouncer/actions/workflows/container-release.yaml)
 ![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/teifun2/cs-unifi-bouncer)
 
-> [!CAUTION]
-> This currently does not Support the new Zone Based Firewall. [#6](https://github.com/Teifun2/cs-unifi-bouncer/issues/6)
-
 > [!WARNING]
 > This was tested with the following [devices](#tested-devices). Further testing is needed
-
-> [!NOTE]  
-> Due to various quirks of the Unifi API this got more complicated than originally planned. 
 
 
 # Description
