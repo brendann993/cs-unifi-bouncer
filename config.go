@@ -15,14 +15,17 @@ var (
 	crowdsecUpdateInterval string
 	unifiHost              string
 	unifiSite              string
-	username               string
-	password               string
+	unifiAPIKey            string
+	unifiUsername          string
+	unifiPassword          string
 	useIPV6                bool
 	maxGroupSize           int
 	ipv4StartRuleIndex     int
 	ipv6StartRuleIndex     int
 	skipTLSVerify          bool
 	unifiLogging           bool
+	unifiZoneSrc           []string
+	unifiZoneDst           []string
 )
 
 func initConfig() {
@@ -36,6 +39,7 @@ func initConfig() {
 	viper.BindEnv("crowdsec_origins")
 	viper.SetDefault("crowdsec_origins", nil)
 	viper.BindEnv("unifi_host")
+	viper.BindEnv("unifi_api_key")
 	viper.BindEnv("unifi_user")
 	viper.BindEnv("unifi_pass")
 	viper.BindEnv("unifi_site")
@@ -54,7 +58,10 @@ func initConfig() {
 	viper.SetDefault("unifi_skip_tls_verify", "false")
 	viper.BindEnv("unifi_logging")
 	viper.SetDefault("unifi_logging", "false")
-	
+	viper.BindEnv("unifi_zone_src")
+	viper.SetDefault("unifi_zone_src", "External")
+	viper.BindEnv("unifi_zone_dst")
+	viper.SetDefault("unifi_zone_dst", "External Internal Vpn Hotspot")
 
 	logLevel = viper.GetString("log_level")
 	level, err := zerolog.ParseLevel(logLevel)
@@ -78,14 +85,12 @@ func initConfig() {
 
 	unifiHost = viper.GetString("unifi_host")
 
-	username = viper.GetString("unifi_user")
-	if username == "" {
-		log.Fatal().Msg("Unifi username is not set")
-	}
+	unifiAPIKey = viper.GetString("unifi_api_key")
+	unifiUsername = viper.GetString("unifi_user")
+	unifiPassword = viper.GetString("unifi_pass")
 
-	password = viper.GetString("unifi_pass")
-	if password == "" {
-		log.Fatal().Msg("Unifi password is not set")
+	if (unifiAPIKey == "" && (unifiUsername == "" || unifiPassword == "")) {
+		log.Fatal().Msg("Unifi API key or username/password is not set")
 	}
 
 	unifiSite = viper.GetString("unifi_site")
@@ -101,8 +106,6 @@ func initConfig() {
 
 	unifiLogging = viper.GetBool("unifi_logging")
 
-	all := viper.AllSettings()
-	delete(all, "unifi_pass")
-
-	log.Printf("Using config: %+v", all)
+	unifiZoneSrc = viper.GetStringSlice("unifi_zone_src")
+	unifiZoneDst = viper.GetStringSlice("unifi_zone_dst")
 }

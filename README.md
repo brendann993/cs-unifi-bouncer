@@ -8,19 +8,12 @@ A CrowdSec Bouncer for Unifi appliance
 ![GitHub](https://img.shields.io/github/license/teifun2/cs-unifi-bouncer)
 ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/teifun2/cs-unifi-bouncer)
 [![Go Report Card](https://goreportcard.com/badge/github.com/teifun2/cs-unifi-bouncer)](https://goreportcard.com/report/github.com/teifun2/cs-unifi-bouncer)
-[![Maintainability](https://api.codeclimate.com/v1/badges/0104e64dccffc4b42f52/maintainability)](https://codeclimate.com/github/teifun2/cs-unifi-bouncer/maintainability)
+[![Maintainability](https://qlty.sh/badges/c1f1c4cf-fabf-45bb-a5c2-4ad04ec6d4ac/maintainability.svg)](https://qlty.sh/gh/Teifun2/projects/cs-unifi-bouncer)
 [![ci](https://github.com/teifun2/cs-unifi-bouncer/actions/workflows/container-release.yaml/badge.svg)](https://github.com/teifun2/cs-unifi-bouncer/actions/workflows/container-release.yaml)
 ![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/teifun2/cs-unifi-bouncer)
-![Docker Image Size (latest semver)](https://img.shields.io/docker/image-size/teifun2/cs-unifi-bouncer)
-
-> [!CAUTION]
-> This currently does not Support the new Zone Based Firewall. [#6](https://github.com/Teifun2/cs-unifi-bouncer/issues/6)
 
 > [!WARNING]
 > This was tested with the following [devices](#tested-devices). Further testing is needed
-
-> [!NOTE]  
-> Due to various quirks of the Unifi API this got more complicated than originally planned. 
 
 
 # Description
@@ -66,23 +59,26 @@ Generate a bouncer API key following [CrowdSec documentation](https://doc.crowds
 ## Configuration
 The bouncer configuration is made via environment variables:
 
-| Name                          | Description                                                                                                        | Default                 | Required |
-|-------------------------------|--------------------------------------------------------------------------------------------------------------------|-------------------------|:--------:|
-| `CROWDSEC_BOUNCER_API_KEY`    | CrowdSec bouncer API key required to be authorized to request local API                                            | `none`                  |    ✅   |
-| `CROWDSEC_URL`                | Host and port of CrowdSec agent                                                                                    | `http://crowdsec:8080/` |    ✅   |
-| `CROWDSEC_ORIGINS`            | Space separated list of CrowdSec origins to filter from LAPI (EG: "crowdsec cscli")                                | `none`                  |    ❌   |
-| `CROWDSEC_UPDATE_INTERVAL`    | Interval Frequency Querying the Crowdsec API for changes to the blocklist.                                         | `5s`                    |    ❌   |
-| `LOG_LEVEL`                   | Minimum log level for bouncer in [zerolog levels](https://pkg.go.dev/github.com/rs/zerolog#readme-leveled-logging) | `1`                     |    ❌   |
-| `UNIFI_HOST`                  | Unifi appliance address                                                                                            | `none`                  |    ✅   |
-| `UNIFI_USER`                  | Unifi appliance username                                                                                           | `none`                  |    ✅   |
-| `UNIFI_PASS`                  | Unifi appliance password                                                                                           | `none`                  |    ✅   |
-| `UNIFI_IPV6`                  | Enable / Disable IPv6 support                                                                                      | `true`                  |    ❌   |
-| `UNIFI_SITE`                  | Unifi Site Configuration in case of multiple sites                                                                 | `default`               |    ❌   |
-| `UNIFI_MAX_GROUP_SIZE`        | UDM has a max IP Group size of 10'000 This might be different for other appliances                                 | `10000`                 |    ❌   |
-| `UNIFI_IPV4_START_RULE_INDEX` | If you have other custom Rules defined in your Firewall this might need to be changed to prevent collisions        | `22000`                 |    ❌   |
-| `UNIFI_IPV6_START_RULE_INDEX` | If you have other custom Rules defined in your Firewall this might need to be changed to prevent collisions        | `27000`                 |    ❌   |
-| `UNIFI_SKIP_TLS_VERIFY`       | Skips Certificate check for unifi controllers without proper SSL Certificate                                       | `false`                 |    ❌   |
-| `UNIFI_LOGGING`               | Generate Syslog entries when the firewall rules are matched                                                        | `false`                 |    ❌   |
+| Name                          | Description                                                                                                        | Default                         | Required |
+|-------------------------------|--------------------------------------------------------------------------------------------------------------------|---------------------------------|:--------:|
+| `CROWDSEC_BOUNCER_API_KEY`    | CrowdSec bouncer API key required to be authorized to request local API                                            | `none`                          |    ✅   |
+| `CROWDSEC_URL`                | Host and port of CrowdSec agent                                                                                    | `http://crowdsec:8080/`         |    ✅   |
+| `CROWDSEC_ORIGINS`            | Space separated list of CrowdSec origins to filter from LAPI (EG: "crowdsec cscli")                                | `none`                          |    ❌   |
+| `CROWDSEC_UPDATE_INTERVAL`    | Interval Frequency Querying the Crowdsec API for changes to the blocklist.                                         | `5s`                            |    ❌   |
+| `LOG_LEVEL`                   | Minimum log level for bouncer in [zerolog levels](https://pkg.go.dev/github.com/rs/zerolog#readme-leveled-logging) | `1`                             |    ❌   |
+| `UNIFI_HOST`                  | Unifi appliance address                                                                                            | `none`                          |    ✅   |
+| `UNIFI_API_KEY`               | Unifi appliance API key                                                                                            | `none`                          | ✅ / ❌ |
+| `UNIFI_USER`                  | Unifi appliance username                                                                                           | `none`                          | ✅ / ❌ |
+| `UNIFI_PASS`                  | Unifi appliance password                                                                                           | `none`                          | ✅ / ❌ |
+| `UNIFI_IPV6`                  | Enable / Disable IPv6 support                                                                                      | `true`                          |    ❌   |
+| `UNIFI_SITE`                  | Unifi Site Configuration in case of multiple sites                                                                 | `default`                       |    ❌   |
+| `UNIFI_MAX_GROUP_SIZE`        | UDM has a max IP Group size of 10'000 This might be different for other appliances                                 | `10000`                         |    ❌   |
+| `UNIFI_IPV4_START_RULE_INDEX` | If you have other custom Rules defined in your Firewall this might need to be changed to prevent collisions        | `22000`                         |    ❌   |
+| `UNIFI_IPV6_START_RULE_INDEX` | If you have other custom Rules defined in your Firewall this might need to be changed to prevent collisions        | `27000`                         |    ❌   |
+| `UNIFI_SKIP_TLS_VERIFY`       | Skips Certificate check for unifi controllers without proper SSL Certificate                                       | `false`                         |    ❌   |
+| `UNIFI_LOGGING`               | Generate Syslog entries when the firewall rules are matched                                                        | `false`                         |    ❌   |
+| `UNIFI_ZONE_SRC`              | Space separated list of Source Zones for Firewall Policy in Zone Based mode                                        | `External`                      |    ❌   |
+| `UNIFI_ZONE_DST`              | Space separated list of Destination Zones for Firewall Policy in Zone Based mode                                   | `External Internal Vpn Hotspot` |    ❌   |
 
 # Contribution
 Any constructive feedback is welcome, feel free to add an issue or a pull request. I will review it and integrate it to the code.

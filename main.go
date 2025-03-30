@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/paultyng/go-unifi/unifi"
+	"github.com/filipowm/go-unifi/unifi"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/sync/errgroup"
 
@@ -17,15 +17,24 @@ type FirewallRuleCache struct {
 	groupId string
 }
 
+type FirewallZonePolicyCache struct {
+	id      string
+	groupId string
+}
+
+type ZoneCache struct {
+	id string
+}
+
 type unifiAddrList struct {
-	c                  *unifi.Client
-	cacheIpv4          map[string]bool
-	cacheIpv6          map[string]bool
-	firewallGroupsIPv4 map[string]string
-	firewallGroupsIPv6 map[string]string
-	firewallRuleIPv4   map[string]FirewallRuleCache
-	firewallRuleIPv6   map[string]FirewallRuleCache
+	c                  unifi.Client
+	blockedAddresses   map[bool]map[string]bool
+	firewallGroups     map[bool]map[string]string
+	firewallRule       map[bool]map[string]FirewallRuleCache
+	firewallZonePolicy map[bool]map[string]FirewallZonePolicyCache
 	modified           bool
+	isZoneBased        bool
+	firewallZones      map[string]ZoneCache
 }
 
 // This variable is set by the build process with ldflags
@@ -78,7 +87,10 @@ func main() {
 				mal.decisionProcess(decisions)
 			case <-inactivityTimer.C:
 				// Execute the update to unifi when no new messages have been received
-				mal.updateFirewall(ctx)
+				mal.updateFirewall(ctx, false)
+				if useIPV6 {
+					mal.updateFirewall(ctx, true)
+				}
 				mal.modified = false
 			}
 		}
