@@ -11,7 +11,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func dial(ctx context.Context) (unifi.Client, error) {
+func dial() (unifi.Client, error) {
 	client, err := unifi.NewClient(
 		&unifi.ClientConfig{
 			URL:       unifiHost,
@@ -33,7 +33,7 @@ func (mal *unifiAddrList) initUnifi(ctx context.Context) {
 
 	log.Info().Msg("Connecting to unifi")
 
-	c, err := dial(ctx)
+	c, err := dial()
 	if err != nil {
 		log.Fatal().Err(err).Str("host", unifiHost).Str("username", unifiUsername).Msg("Connection failed")
 	}
@@ -236,7 +236,7 @@ func (mal *unifiAddrList) updateFirewall(ctx context.Context, ipv6 bool) {
 			continue
 		}
 		// If isZoneBased, then delete all rules independent of index
-		if !mal.isZoneBased && (err != nil || index >= numGroups) {
+		if !mal.isZoneBased && index >= numGroups {
 			continue
 		}
 		// Delete the old firewall rule
@@ -259,7 +259,7 @@ func (mal *unifiAddrList) updateFirewall(ctx context.Context, ipv6 bool) {
 			continue
 		}
 		// If isZoneBased is false, then delete all policies independent of index
-		if mal.isZoneBased && (err != nil || index < numGroups) {
+		if mal.isZoneBased && index < numGroups {
 			continue
 		}
 		// Delete the old firewall policy
@@ -281,7 +281,7 @@ func (mal *unifiAddrList) updateFirewall(ctx context.Context, ipv6 bool) {
 			log.Warn().Msgf("Invalid group index in name: %s", groupName)
 			continue
 		}
-		if err != nil || index < numGroups {
+		if index < numGroups {
 			continue
 		}
 		// Delete the old firewall group
