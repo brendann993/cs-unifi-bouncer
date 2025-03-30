@@ -205,7 +205,7 @@ func (mal *unifiAddrList) updateFirewall(ctx context.Context, ipv6 bool) {
 					}
 					// Post the firewall rule, skip if the group ID is the same as the cached one (no changes)
 					if groupID != "" && groupID != cachedGroupId {
-						mal.postFirewallPolicy(ctx, policyId, policyName, false, groupID, zoneSrc, zoneDst)
+						mal.postFirewallPolicy(ctx, policyId, policyName, ipv6, groupID, zoneSrc, zoneDst)
 					}
 				}
 			}
