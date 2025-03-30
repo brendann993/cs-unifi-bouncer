@@ -101,7 +101,6 @@ func (mal *unifiAddrList) postFirewallPolicy(ctx context.Context, index int, ID 
 		ConnectionStateType: "ALL",
 		Protocol:            "all",
 		IPVersion:           ipVersion,
-		Index:               10000, //TODO: Autocalculate next free index
 		Logging:             unifiLogging,
 		Source: unifi.FirewallZonePolicySource{
 			ZoneID:             srcZoneId,
