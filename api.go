@@ -138,9 +138,9 @@ func (mal *unifiAddrList) postFirewallPolicy(ctx context.Context, index int, ID 
 		log.Info().Msg("Firewall Rule posted")
 		var firewallZonePolicyCache = FirewallZonePolicyCache{id: firewallZonePolicy.ID, groupId: groupId}
 		if ipv6 {
-			mal.firewallZonePoliyIPv6[firewallZonePolicy.Name] = firewallZonePolicyCache
+			mal.firewallZonePolicyIPv6[firewallZonePolicy.Name] = firewallZonePolicyCache
 		} else {
-			mal.firewallZonePoliyIPv4[firewallZonePolicy.Name] = firewallZonePolicyCache
+			mal.firewallZonePolicyIPv4[firewallZonePolicy.Name] = firewallZonePolicyCache
 		}
 	}
 }

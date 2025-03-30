@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -48,6 +49,8 @@ func (mal *unifiAddrList) initUnifi(ctx context.Context) {
 	mal.firewallGroupsIPv6 = make(map[string]string)
 	mal.firewallRuleIPv4 = make(map[string]FirewallRuleCache)
 	mal.firewallRuleIPv6 = make(map[string]FirewallRuleCache)
+	mal.firewallZonePolicyIPv4 = make(map[string]FirewallZonePolicyCache)
+	mal.firewallZonePolicyIPv6 = make(map[string]FirewallZonePolicyCache)
 	mal.modified = false
 	mal.isZoneBased = false
 	mal.firewallZones = make(map[string]ZoneCache)
@@ -94,6 +97,23 @@ func (mal *unifiAddrList) initUnifi(ctx context.Context) {
 		}
 		if strings.Contains(rule.Name, "cs-unifi-bouncer-ipv6") {
 			mal.firewallRuleIPv6[rule.Name] = FirewallRuleCache{id: rule.ID, groupId: rule.SrcFirewallGroupIDs[0]}
+		}
+	}
+
+	// Check if firewall policies exists
+	if mal.isZoneBased {
+		policies, err := mal.c.ListFirewallZonePolicy(ctx, unifiSite)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to get firewall policies")
+		}
+
+		for _, policy := range policies {
+			if strings.Contains(policy.Name, "cs-unifi-bouncer-ipv4") {
+				mal.firewallZonePolicyIPv4[policy.Name] = FirewallZonePolicyCache{id: policy.ID, groupId: policy.Source.IPGroupID}
+			}
+			if strings.Contains(policy.Name, "cs-unifi-bouncer-ipv6") {
+				mal.firewallZonePolicyIPv4[policy.Name] = FirewallZonePolicyCache{id: policy.ID, groupId: policy.Source.IPGroupID}
+			}
 		}
 	}
 
@@ -167,17 +187,35 @@ func (mal *unifiAddrList) updateFirewall(ctx context.Context) {
 		// Post the firewall group
 		groupID = mal.postFirewallGroup(ctx, i/maxGroupSize, groupID, false, group)
 
-		// Get the rule ID if it exists
-		ruleId := ""
-		cachedGroupId := ""
-		if ruleCache, exists := mal.firewallRuleIPv4["cs-unifi-bouncer-ipv4-"+strconv.Itoa(i/maxGroupSize)]; exists {
-			ruleId = ruleCache.id
-			cachedGroupId = ruleCache.groupId
-		}
+		if mal.isZoneBased {
+			for _, zoneSrc := range unifiZoneSrc {
+				for _, zoneDst := range unifiZoneDst {
+					// Get the policy ID if it exists
+					policyId := ""
+					cachedGroupId := ""
+					if policyCache, exists := mal.firewallZonePolicyIPv4[fmt.Sprintf("cs-unifi-bouncer-ipv4-%s->%s-%d", zoneSrc, zoneDst, i/maxGroupSize)]; exists {
+						policyId = policyCache.id
+						cachedGroupId = policyCache.groupId
+					}
+					// Post the firewall rule, skip if the group ID is the same as the cached one (no changes)
+					if groupID != "" && groupID != cachedGroupId {
+						mal.postFirewallPolicy(ctx, i/maxGroupSize, policyId, false, groupID, zoneSrc, zoneDst)
+					}
+				}
+			}
+		} else {
+			// Get the rule ID if it exists
+			ruleId := ""
+			cachedGroupId := ""
+			if ruleCache, exists := mal.firewallRuleIPv4["cs-unifi-bouncer-ipv4-"+strconv.Itoa(i/maxGroupSize)]; exists {
+				ruleId = ruleCache.id
+				cachedGroupId = ruleCache.groupId
+			}
 
-		// Post the firewall rule, skip if the group ID is the same as the cached one (no changes)
-		if groupID != "" && groupID != cachedGroupId {
-			mal.postFirewallRule(ctx, i/maxGroupSize, ruleId, false, groupID)
+			// Post the firewall rule, skip if the group ID is the same as the cached one (no changes)
+			if groupID != "" && groupID != cachedGroupId {
+				mal.postFirewallRule(ctx, i/maxGroupSize, ruleId, false, groupID)
+			}
 		}
 	}
 
