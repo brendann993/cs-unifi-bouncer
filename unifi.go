@@ -21,11 +21,6 @@ func dial(ctx context.Context) (unifi.Client, error) {
 		},
 	)
 
-	// TODO: Is this no longer needed?
-	// 	jar, _ := cookiejar.New(nil)
-	// 	httpClient.Jar = jar
-	// 	client.SetHTTPClient(httpClient)
-
 	if err != nil {
 		return nil, err
 	}
