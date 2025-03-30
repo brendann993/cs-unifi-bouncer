@@ -99,6 +99,10 @@ func (mal *unifiAddrList) initUnifi(ctx context.Context) {
 
 	// Cache Firewall Zones
 	if mal.isZoneBased {
+		if len(unifiZoneSrc) == 0 || len(unifiZoneDst) == 0 {
+			log.Fatal().Msg("At least one unifiZoneSrc and one unifiZoneDst must be configured")
+		}
+
 		zones, err := c.ListFirewallZone(ctx, unifiSite)
 		if err != nil {
 			log.Fatal().Err(err).Msg("Failed to get firewall zones")

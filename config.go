@@ -108,8 +108,4 @@ func initConfig() {
 
 	unifiZoneSrc = viper.GetStringSlice("unifi_zone_src")
 	unifiZoneDst = viper.GetStringSlice("unifi_zone_dst")
-
-	if len(unifiZoneSrc) == 0 || len(unifiZoneDst) == 0 {
-		log.Fatal().Msg("At least one unifiZoneSrc and one unifiZoneDst must be configured")
-	}
 }
