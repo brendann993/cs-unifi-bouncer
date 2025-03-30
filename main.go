@@ -20,8 +20,6 @@ type FirewallRuleCache struct {
 type FirewallZonePolicyCache struct {
 	id        string
 	groupId   string
-	srcZoneId string
-	dstZoneId string
 }
 
 type ZoneCache struct {

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 
 	"github.com/filipowm/go-unifi/unifi"
@@ -79,16 +80,19 @@ func (mal *unifiAddrList) postFirewallRule(ctx context.Context, index int, ID st
 	}
 }
 
-func (mal *unifiAddrList) postFirewallPolicy(ctx context.Context, index int, ID string, ipv6 bool, groupId string, srcZoneId string, dstZoneId string) {
-	name := "cs-unifi-bouncer-ipv4-" + strconv.Itoa(index)
+func (mal *unifiAddrList) postFirewallPolicy(ctx context.Context, index int, ID string, ipv6 bool, groupId string, srcZone string, dstZone string) {
+	name := fmt.Sprintf("cs-unifi-bouncer-ipv4-%s->%s-%d", srcZone, dstZone, index)
 	if ipv6 {
-		name = "cs-unifi-bouncer-ipv6-" + strconv.Itoa(index)
+		name = fmt.Sprintf("cs-unifi-bouncer-ipv6-%s->%s-%d", srcZone, dstZone, index)
 	}
 
 	ipVersion := "IPV4"
 	if ipv6 {
 		ipVersion = "IPV6"
 	}
+
+	srcZoneId := mal.firewallZones[srcZone].id
+	dstZoneId := mal.firewallZones[dstZone].id
 
 	firewallZonePolicy := &unifi.FirewallZonePolicy{
 		Action:              "BLOCK",
@@ -133,7 +137,7 @@ func (mal *unifiAddrList) postFirewallPolicy(ctx context.Context, index int, ID 
 			firewallZonePolicy = newFirewallZonePolicy
 		}
 		log.Info().Msg("Firewall Rule posted")
-		var firewallZonePolicyCache = FirewallZonePolicyCache{id: firewallZonePolicy.ID, groupId: groupId, srcZoneId: srcZoneId, dstZoneId: dstZoneId}
+		var firewallZonePolicyCache = FirewallZonePolicyCache{id: firewallZonePolicy.ID, groupId: groupId}
 		if ipv6 {
 			mal.firewallZonePoliyIPv6[firewallZonePolicy.Name] = firewallZonePolicyCache
 		} else {
