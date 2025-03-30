@@ -2,8 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
-	"strconv"
 
 	"github.com/filipowm/go-unifi/unifi"
 	"github.com/rs/zerolog/log"
@@ -22,12 +20,7 @@ import (
 // The function constructs a firewall rule with the specified parameters and either
 // updates an existing rule or creates a new one in the UniFi controller. If the
 // operation fails, it logs a fatal error. Otherwise, it logs an informational message.
-func (mal *unifiAddrList) postFirewallRule(ctx context.Context, index int, ID string, ipv6 bool, groupId string) {
-	name := "cs-unifi-bouncer-ipv4-" + strconv.Itoa(index)
-	if ipv6 {
-		name = "cs-unifi-bouncer-ipv6-" + strconv.Itoa(index)
-	}
-
+func (mal *unifiAddrList) postFirewallRule(ctx context.Context, index int, ID string, ruleName string, ipv6 bool, groupId string) {
 	ruleset := "WAN_IN"
 	if ipv6 {
 		ruleset = "WANv6_IN"
@@ -41,7 +34,7 @@ func (mal *unifiAddrList) postFirewallRule(ctx context.Context, index int, ID st
 	firewallRule := &unifi.FirewallRule{
 		Action:              "drop",
 		Enabled:             true,
-		Name:                name,
+		Name:                ruleName,
 		SrcFirewallGroupIDs: []string{groupId},
 		Protocol:            "all",
 		Ruleset:             ruleset,
@@ -72,20 +65,11 @@ func (mal *unifiAddrList) postFirewallRule(ctx context.Context, index int, ID st
 			firewallRule = newFirewallRule
 		}
 		log.Info().Msg("Firewall Rule posted")
-		if ipv6 {
-			mal.firewallRuleIPv6[firewallRule.Name] = FirewallRuleCache{id: firewallRule.ID, groupId: groupId}
-		} else {
-			mal.firewallRuleIPv4[firewallRule.Name] = FirewallRuleCache{id: firewallRule.ID, groupId: groupId}
-		}
+		mal.firewallRule[ipv6][firewallRule.Name] = FirewallRuleCache{id: firewallRule.ID, groupId: groupId}
 	}
 }
 
-func (mal *unifiAddrList) postFirewallPolicy(ctx context.Context, index int, ID string, ipv6 bool, groupId string, srcZone string, dstZone string) {
-	name := fmt.Sprintf("cs-unifi-bouncer-ipv4-%s->%s-%d", srcZone, dstZone, index)
-	if ipv6 {
-		name = fmt.Sprintf("cs-unifi-bouncer-ipv6-%s->%s-%d", srcZone, dstZone, index)
-	}
-
+func (mal *unifiAddrList) postFirewallPolicy(ctx context.Context, index int, ID string, policyName string, ipv6 bool, groupId string, srcZone string, dstZone string) {
 	ipVersion := "IPV4"
 	if ipv6 {
 		ipVersion = "IPV6"
@@ -97,7 +81,7 @@ func (mal *unifiAddrList) postFirewallPolicy(ctx context.Context, index int, ID 
 	firewallZonePolicy := &unifi.FirewallZonePolicy{
 		Action:              "BLOCK",
 		Enabled:             true,
-		Name:                name,
+		Name:                policyName,
 		ConnectionStateType: "ALL",
 		Protocol:            "all",
 		IPVersion:           ipVersion,
@@ -137,11 +121,7 @@ func (mal *unifiAddrList) postFirewallPolicy(ctx context.Context, index int, ID 
 		}
 		log.Info().Msg("Firewall Rule posted")
 		var firewallZonePolicyCache = FirewallZonePolicyCache{id: firewallZonePolicy.ID, groupId: groupId}
-		if ipv6 {
-			mal.firewallZonePolicyIPv6[firewallZonePolicy.Name] = firewallZonePolicyCache
-		} else {
-			mal.firewallZonePolicyIPv4[firewallZonePolicy.Name] = firewallZonePolicyCache
-		}
+		mal.firewallZonePolicy[ipv6][firewallZonePolicy.Name] = firewallZonePolicyCache
 	}
 }
 
@@ -157,19 +137,14 @@ func (mal *unifiAddrList) postFirewallPolicy(ctx context.Context, index int, ID 
 // - members: A slice of strings representing the members of the firewall group.
 //
 // The function logs a fatal error if the operation fails, otherwise it logs a success message.
-func (mal *unifiAddrList) postFirewallGroup(ctx context.Context, index int, ID string, ipv6 bool, members []string) string {
-	name := "cs-unifi-bouncer-ipv4-" + strconv.Itoa(index)
-	if ipv6 {
-		name = "cs-unifi-bouncer-ipv6-" + strconv.Itoa(index)
-	}
-
+func (mal *unifiAddrList) postFirewallGroup(ctx context.Context, index int, ID string, groupName string, ipv6 bool, members []string) string {
 	groupType := "address-group"
 	if ipv6 {
 		groupType = "ipv6-address-group"
 	}
 
 	group := &unifi.FirewallGroup{
-		Name:         name,
+		Name:         groupName,
 		GroupType:    groupType,
 		GroupMembers: members,
 	}
@@ -192,11 +167,7 @@ func (mal *unifiAddrList) postFirewallGroup(ctx context.Context, index int, ID s
 			group = newGroup
 		}
 		log.Info().Msg("Firewall Group posted")
-		if ipv6 {
-			mal.firewallGroupsIPv6[name] = group.ID
-		} else {
-			mal.firewallGroupsIPv4[name] = group.ID
-		}
+		mal.firewallGroups[ipv6][group.Name] = group.ID
 		return group.ID
 	}
 }
