@@ -18,7 +18,7 @@ A CrowdSec Bouncer for Unifi appliance
 
 # Description
 This repository aim to implement a [CrowdSec](https://doc.crowdsec.net/) bouncer for the routers of [Unifi](https://www.ui.com/) to block malicious IP to access your services.
-For this it leverages [Unifi API](https://ubntwiki.com/products/software/unifi-controller/api) to populate a dynamic Firewall Address List. Specically the Go Library [go-unifi](https://github.com/paultyng/go-unifi) is used.
+For this it leverages [Unifi API](https://ubntwiki.com/products/software/unifi-controller/api) to populate a dynamic Firewall Address List. Specically the Go Library [go-unifi](https://github.com/filipowm/go-unifi) is used.
 
 # Acknowledgment
 This is a Fork of [funkolab/cs-mikrotik-bouncer](https://github.com/funkolab/cs-mikrotik-bouncer) and would not have been possible without this previous work
