@@ -63,8 +63,8 @@ func (mal *unifiAddrList) initUnifi(ctx context.Context) {
 	// Check if zone-based firewall is enabled
 	mal.isZoneBased, err = c.IsFeatureEnabled(ctx, unifiSite, "ZONE_BASED_FIREWALL")
 
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to get networks")
+	if err != nil && err.Error() != "not found" {
+		log.Fatal().Err(err).Msg("Failed to check the described-features")
 	}
 
 	log.Info().Msgf("Zone Based Firewall: %t", mal.isZoneBased)
@@ -221,7 +221,7 @@ func (mal *unifiAddrList) updateFirewall(ctx context.Context, ipv6 bool) {
 
 			// Post the firewall rule, skip if the group ID is the same as the cached one (no changes)
 			if groupID != "" && groupID != cachedGroupId {
-				mal.postFirewallRule(ctx, i/maxGroupSize, ruleId, ruleName, false, groupID)
+				mal.postFirewallRule(ctx, i/maxGroupSize, ruleId, ruleName, ipv6, groupID)
 			}
 		}
 	}
@@ -236,7 +236,7 @@ func (mal *unifiAddrList) updateFirewall(ctx context.Context, ipv6 bool) {
 			continue
 		}
 		// If isZoneBased, then delete all rules independent of index
-		if !mal.isZoneBased && index >= numGroups {
+		if !mal.isZoneBased && index < numGroups {
 			continue
 		}
 		// Delete the old firewall rule

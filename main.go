@@ -73,6 +73,9 @@ func main() {
 	inactivityTimer := time.NewTimer(10 * time.Second)
 	defer inactivityTimer.Stop()
 
+	// At startup, we need to call all update functions to ensure the firewall is in sync with the decisions
+	mal.modified = true
+
 	g.Go(func() error {
 		log.Printf("Processing new and deleted decisions . . .")
 		for {
