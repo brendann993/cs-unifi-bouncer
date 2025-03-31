@@ -61,7 +61,7 @@ func (mal *unifiAddrList) initUnifi(ctx context.Context) {
 	mal.firewallZones = make(map[string]ZoneCache)
 
 	// Check if zone-based firewall is enabled
-	mal.isZoneBased, err = c.IsFeatureEnabled(ctx, unifiSite, "ZONE_BASED_FIREWALL_MIGRATION")
+	mal.isZoneBased, err = c.IsFeatureEnabled(ctx, unifiSite, "ZONE_BASED_FIREWALL")
 
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to get networks")
