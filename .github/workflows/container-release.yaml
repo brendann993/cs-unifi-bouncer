@@ -2,13 +2,11 @@ name: build and publish container
 
 on:
   push:
-    branches:
-      - 'main'
+    tags:
+      - 'v*'
   pull_request:
     branches:
       - 'main'
-
-  workflow_dispatch:
 
 env:
   IMAGE_NAME: ${{ github.repository }}
@@ -46,7 +44,7 @@ jobs:
       
       - name: Build and Push to GHCR with ko
         env:
-          KO_DOCKER_REPO: ghcr.io/nikgro
+          KO_DOCKER_REPO: ghcr.io/teifun2
           TAGS: ${{ steps.meta.outputs.tags }}
           LABELS: ${{ steps.meta.outputs.labels }}
           VERSION: ${{ steps.meta.outputs.version }}
