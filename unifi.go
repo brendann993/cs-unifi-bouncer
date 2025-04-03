@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -258,8 +259,14 @@ func (mal *unifiAddrList) updateFirewall(ctx context.Context, ipv6 bool) {
 			log.Warn().Msgf("Invalid policy index in name: %s", policyName)
 			continue
 		}
-		// If isZoneBased is false, then delete all policies independent of index
-		if mal.isZoneBased && index < numGroups {
+
+		// Check if unifiZoneSrc contains the src of the existing policy
+		validSrc := slices.Contains(unifiZoneSrc, parts[4])
+		validDst := slices.Contains(unifiZoneDst, strings.ReplaceAll(parts[5], ">", ""))
+
+		// If isZoneBased is false or if targeted zones are out of scope
+		// then delete these policies independent of index
+		if mal.isZoneBased && validSrc && validDst && index < numGroups {
 			continue
 		}
 		// Delete the old firewall policy
