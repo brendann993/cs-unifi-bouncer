@@ -86,6 +86,7 @@ func (mal *unifiAddrList) postFirewallPolicy(ctx context.Context, ID string, pol
 		Protocol:            "all",
 		IPVersion:           ipVersion,
 		Logging:             unifiLogging,
+		Description: 	   	 "Automatically added by the cs-unfi-bouncer",
 		Source: unifi.FirewallZonePolicySource{
 			ZoneID:             srcZoneId,
 			MatchingTarget:     "IP",
