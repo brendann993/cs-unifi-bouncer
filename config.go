@@ -61,7 +61,7 @@ func initConfig() {
 	viper.BindEnv("unifi_zone_src")
 	viper.SetDefault("unifi_zone_src", "External")
 	viper.BindEnv("unifi_zone_dst")
-	viper.SetDefault("unifi_zone_dst", "External Internal Vpn Hotspot")
+	viper.SetDefault("unifi_zone_dst", "Internal Vpn Hotspot")
 
 	logLevel = viper.GetString("log_level")
 	level, err := zerolog.ParseLevel(logLevel)

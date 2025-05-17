@@ -79,7 +79,7 @@ The bouncer configuration is made via environment variables:
 | `UNIFI_SKIP_TLS_VERIFY`       | Skips Certificate check for unifi controllers without proper SSL Certificate                                       | `false`                         |    ❌   |
 | `UNIFI_LOGGING`               | Generate Syslog entries when the firewall rules are matched                                                        | `false`                         |    ❌   |
 | `UNIFI_ZONE_SRC`              | Space separated list of Source Zones for Firewall Policy in Zone Based mode                                        | `External`                      |    ❌   |
-| `UNIFI_ZONE_DST`              | Space separated list of Destination Zones for Firewall Policy in Zone Based mode                                   | `External Internal Vpn Hotspot` |    ❌   |
+| `UNIFI_ZONE_DST`              | Space separated list of Destination Zones for Firewall Policy in Zone Based mode                                   | `Internal Vpn Hotspot`          |    ❌   |
 
 # Contribution
 Any constructive feedback is welcome, feel free to add an issue or a pull request. I will review it and integrate it to the code.
