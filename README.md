@@ -36,7 +36,7 @@ This is a Fork of [funkolab/cs-mikrotik-bouncer](https://github.com/funkolab/cs-
 - [ ] Cloud Gateway Max (UCG-Max)
 - [x] Cloud Gateway Ultra (UCG-Ultra)
 - [x] Cloud Cateway Fiber (UCG-Fiber)
-- [ ] UniFi Express (UX)
+- [x] UniFi Express (UX)
 - [ ] Dream Wall (DW)
 - [ ] Enterprise Fortress Gateway (EFG)
 
