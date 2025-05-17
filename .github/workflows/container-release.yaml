@@ -3,10 +3,10 @@ name: build and publish container
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
   pull_request:
     branches:
-      - 'main'
+      - "main"
 
 env:
   IMAGE_NAME: ${{ github.repository }}
@@ -14,7 +14,9 @@ env:
 jobs:
   release-container:
     runs-on: ubuntu-latest
-    permissions: write-all
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4.2.1
@@ -26,9 +28,9 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install ko 
+      - name: Install ko
         uses: imjasonh/setup-ko@v0.7
-      
+
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v5
@@ -41,7 +43,6 @@ jobs:
             type=semver,pattern=v{{major}}.{{minor}}
             type=semver,pattern=v{{major}}
 
-      
       - name: Build and Push to GHCR with ko
         env:
           KO_DOCKER_REPO: ghcr.io/teifun2

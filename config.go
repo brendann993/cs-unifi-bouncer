@@ -89,7 +89,7 @@ func initConfig() {
 	unifiUsername = viper.GetString("unifi_user")
 	unifiPassword = viper.GetString("unifi_pass")
 
-	if (unifiAPIKey == "" && (unifiUsername == "" || unifiPassword == "")) {
+	if unifiAPIKey == "" && (unifiUsername == "" || unifiPassword == "") {
 		log.Fatal().Msg("Unifi API key or username/password is not set")
 	}
 

@@ -17,4 +17,3 @@ jobs:
           # config-name: my-config.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          
