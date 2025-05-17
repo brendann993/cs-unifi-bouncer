@@ -61,7 +61,7 @@ func initConfig() {
 	viper.BindEnv("unifi_zone_src")
 	viper.SetDefault("unifi_zone_src", "External")
 	viper.BindEnv("unifi_zone_dst")
-	viper.SetDefault("unifi_zone_dst", "External Internal Vpn Hotspot")
+	viper.SetDefault("unifi_zone_dst", "Internal Vpn Hotspot")
 
 	logLevel = viper.GetString("log_level")
 	level, err := zerolog.ParseLevel(logLevel)
@@ -89,7 +89,7 @@ func initConfig() {
 	unifiUsername = viper.GetString("unifi_user")
 	unifiPassword = viper.GetString("unifi_pass")
 
-	if (unifiAPIKey == "" && (unifiUsername == "" || unifiPassword == "")) {
+	if unifiAPIKey == "" && (unifiUsername == "" || unifiPassword == "") {
 		log.Fatal().Msg("Unifi API key or username/password is not set")
 	}
 
