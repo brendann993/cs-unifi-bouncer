@@ -194,6 +194,9 @@ func (mal *unifiAddrList) updateFirewall(ctx context.Context, ipv6 bool) {
 		// Post the firewall group
 		groupID = mal.postFirewallGroup(ctx, groupID, groupName, ipv6, group)
 
+		// Used to track if new policies were posted to know if we need to reorder them later
+		var newPoliciesPosted bool
+
 		if mal.isZoneBased {
 			for _, zoneSrc := range unifiZoneSrc {
 				for _, zoneDst := range unifiZoneDst {
@@ -207,12 +210,17 @@ func (mal *unifiAddrList) updateFirewall(ctx context.Context, ipv6 bool) {
 					}
 					// Post the firewall rule, skip if the group ID is the same as the cached one (no changes)
 					if groupID != "" && groupID != cachedGroupId {
+						newPoliciesPosted = true
 						mal.postFirewallPolicy(ctx, policyId, policyName, ipv6, groupID, zoneSrc, zoneDst)
 					}
 				}
 			}
 			// Reorder policies after all have been generated
-			mal.reorderFirewallPolicies(ctx)
+			if newPoliciesPosted || !mal.initialReorderingDone {
+				newPoliciesPosted = false
+				mal.initialReorderingDone = true
+				mal.reorderFirewallPolicies(ctx)
+			}
 
 		} else {
 			// Get the rule ID if it exists
