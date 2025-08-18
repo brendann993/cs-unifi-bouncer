@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -210,6 +211,9 @@ func (mal *unifiAddrList) updateFirewall(ctx context.Context, ipv6 bool) {
 					}
 				}
 			}
+			// Reorder policies after all have been generated
+			mal.reorderFirewallPolicies(ctx)
+
 		} else {
 			// Get the rule ID if it exists
 			ruleName := fmt.Sprintf("cs-unifi-bouncer-%s-%d", ipVersionString, i/maxGroupSize)
@@ -357,5 +361,122 @@ func (mal *unifiAddrList) decisionProcess(streamDecision *models.DecisionsStream
 	}
 	for _, decision := range streamDecision.New {
 		mal.add(decision)
+	}
+}
+
+// reorderFirewallPolicies reorders the firewall policies according to the specified logic
+func (mal *unifiAddrList) reorderFirewallPolicies(ctx context.Context) {
+	log.Info().Msg("Starting firewall policy reordering")
+
+	// Get all policies
+	allPolicies, err := mal.c.ListFirewallZonePolicy(ctx, unifiSite)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to get firewall policies for reordering")
+		return
+	}
+
+	// Filter out predefined policies and policies from port forwarding with index 3XXXX
+	var filteredPolicies []unifi.FirewallZonePolicy
+	for _, policy := range allPolicies {
+		if !policy.Predefined && (policy.Index < 30000 || policy.Index >= 40000) {
+			filteredPolicies = append(filteredPolicies, policy)
+		}
+	}
+
+	// Sort filtered policies by index to ensure consistent ordering
+	sort.Slice(filteredPolicies, func(i, j int) bool {
+		return filteredPolicies[i].Index < filteredPolicies[j].Index
+	})
+
+	// Iterate through each zone combination
+	for _, zoneSrc := range unifiZoneSrc {
+		for _, zoneDst := range unifiZoneDst {
+			srcZoneId := mal.firewallZones[zoneSrc].id
+			dstZoneId := mal.firewallZones[zoneDst].id
+
+			// Filter policies for this specific zone combination
+			var relevantPolicies []unifi.FirewallZonePolicy
+			for _, policy := range filteredPolicies {
+				// Check if policy belongs to the current zone combination
+				if policy.Source.ZoneID == srcZoneId && policy.Destination.ZoneID == dstZoneId {
+					relevantPolicies = append(relevantPolicies, policy)
+				}
+			}
+
+			if len(relevantPolicies) == 0 {
+				continue
+			}
+
+			// Separate policies into pre (index < 30000) and after (index >= 40000) lists
+			var prePolicies []unifi.FirewallZonePolicy
+			var afterPolicies []unifi.FirewallZonePolicy
+			var newPolicies []unifi.FirewallZonePolicy
+
+			for _, policy := range relevantPolicies {
+				// Check if this is one of our newly generated policies not yet with index >= 40000
+				isNewPolicy := false
+				// Check both IPv4 and IPv6 caches
+				_, existsIPv4 := mal.firewallZonePolicy[false][policy.Name]
+				_, existsIPv6 := mal.firewallZonePolicy[true][policy.Name]
+				isNewPolicy = (existsIPv4 || existsIPv6) && policy.Index < 40000
+
+				if isNewPolicy {
+					newPolicies = append(newPolicies, policy)
+				} else if policy.Index < 40000 {
+					prePolicies = append(prePolicies, policy)
+				} else {
+					afterPolicies = append(afterPolicies, policy)
+				}
+			}
+
+			// If there are no new policies to reorder, skip this zone combination
+			// This can happen if all policies are already in the correct order
+			if len(newPolicies) == 0 {
+				continue
+			}
+
+			// Initialize as empty slices (not nil) to ensure API compatibility
+			beforePredefinedIds := make([]string, 0)
+			afterPredefinedIds := make([]string, 0)
+
+			// Extract IDs from pre policies
+			for _, policy := range prePolicies {
+				beforePredefinedIds = append(beforePredefinedIds, policy.ID)
+			}
+
+			// Extract IDs from new policies (go first in after list)
+			for _, policy := range newPolicies {
+				afterPredefinedIds = append(afterPredefinedIds, policy.ID)
+			}
+
+			// Extract IDs from remaining after policies
+			for _, policy := range afterPolicies {
+				afterPredefinedIds = append(afterPredefinedIds, policy.ID)
+			}
+
+			// Create the reorder request
+			reorderUpdate := &unifi.FirewallPolicyOrderUpdate{
+				SourceZoneId:        srcZoneId,
+				DestinationZoneId:   dstZoneId,
+				AfterPredefinedIds:  afterPredefinedIds,
+				BeforePredefinedIds: beforePredefinedIds,
+			}
+
+			// Execute the reorder
+			_, err := mal.c.ReorderFirewallPolicies(ctx, unifiSite, reorderUpdate)
+			if err != nil {
+				log.Error().Err(err).
+					Str("srcZone", zoneSrc).
+					Str("dstZone", zoneDst).
+					Msg("Failed to reorder firewall policies")
+			} else {
+				log.Info().
+					Str("srcZone", zoneSrc).
+					Str("dstZone", zoneDst).
+					Int("beforeCount", len(beforePredefinedIds)).
+					Int("afterCount", len(afterPredefinedIds)).
+					Msg("Successfully reordered firewall policies")
+			}
+		}
 	}
 }
