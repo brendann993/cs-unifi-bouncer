@@ -215,8 +215,8 @@ func (mal *unifiAddrList) updateFirewall(ctx context.Context, ipv6 bool) {
 					}
 				}
 			}
-			// Reorder policies after all have been generated
-			if newPoliciesPosted || !mal.initialReorderingDone {
+			// Reorder policies after all have been generated (if enabled in config)
+			if unifiPolicyReordering && (newPoliciesPosted || !mal.initialReorderingDone) {
 				newPoliciesPosted = false
 				mal.initialReorderingDone = true
 				mal.reorderFirewallPolicies(ctx)

@@ -26,6 +26,7 @@ var (
 	unifiLogging           bool
 	unifiZoneSrc           []string
 	unifiZoneDst           []string
+	unifiPolicyReordering  bool
 )
 
 func initConfig() {
@@ -62,6 +63,8 @@ func initConfig() {
 	viper.SetDefault("unifi_zone_src", "External")
 	viper.BindEnv("unifi_zone_dst")
 	viper.SetDefault("unifi_zone_dst", "Internal Vpn Hotspot")
+	viper.BindEnv("unifi_policy_reordering")
+	viper.SetDefault("unifi_policy_reordering", "true")
 
 	logLevel = viper.GetString("log_level")
 	level, err := zerolog.ParseLevel(logLevel)
@@ -108,4 +111,6 @@ func initConfig() {
 
 	unifiZoneSrc = viper.GetStringSlice("unifi_zone_src")
 	unifiZoneDst = viper.GetStringSlice("unifi_zone_dst")
+
+	unifiPolicyReordering = viper.GetBool("unifi_policy_reordering")
 }
