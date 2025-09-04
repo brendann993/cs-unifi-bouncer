@@ -102,7 +102,7 @@ func (mal *unifiAddrList) initUnifi(ctx context.Context) {
 		}
 	}
 
-	// Check if firewall policies exists
+	// Check if firewall policies exists, delete them to start fresh
 	if mal.isZoneBased {
 		policies, err := mal.c.ListFirewallZonePolicy(ctx, unifiSite)
 		if err != nil {
@@ -111,9 +111,7 @@ func (mal *unifiAddrList) initUnifi(ctx context.Context) {
 
 		for _, policy := range policies {
 			if strings.Contains(policy.Name, "cs-unifi-bouncer") {
-				ipv6 := strings.Contains(policy.Name, "ipv6")
-
-				mal.firewallZonePolicy[ipv6][policy.Name] = FirewallZonePolicyCache{id: policy.ID, groupId: policy.Source.IPGroupID}
+				mal.c.DeleteFirewallZonePolicy(ctx, unifiSite, policy.ID)
 			}
 		}
 	}
