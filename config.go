@@ -64,7 +64,7 @@ func initConfig() {
 	viper.BindEnv("unifi_zone_dst")
 	viper.SetDefault("unifi_zone_dst", "Internal Vpn Hotspot")
 	viper.BindEnv("unifi_policy_reordering")
-	viper.SetDefault("unifi_policy_reordering", "true")
+	viper.SetDefault("unifi_policy_reordering", "false")
 
 	logLevel = viper.GetString("log_level")
 	level, err := zerolog.ParseLevel(logLevel)
