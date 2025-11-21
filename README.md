@@ -85,6 +85,9 @@ The bouncer configuration is made via environment variables:
 | `UNIFI_ZONE_SRC`              | Space separated list of Source Zones for Firewall Policy in Zone Based mode                                                               | `External`              |    ❌    |
 | `UNIFI_ZONE_DST`              | Space separated list of Destination Zones for Firewall Policy in Zone Based mode                                                          | `Internal Vpn Hotspot`  |    ❌    |
 | `UNIFI_POLICY_REORDERING`     | Enable automatic reordering of firewall policies to ensure cs-unifi-bouncer policies are positioned after default policies                | `true`                  |    ❌    |
+| `UNIFI_LOG_CLEANUP`           | Enables automatic cleaning of changes in the Unifi admin log to prevent excessive CPU useage 	| `false`                  |    ❌    |
+| `UNIFI_LOG_CLEANUP_USER`                  | Unifi ssh user                                                                                                                  | `none`                  | ✅ / ❌  |
+| `UNIFI_LOG_CLEANUP_PASSWORD`                  | Unifi ssh password                                                                                                                  | `none`                  | ✅ / ❌  |
 
 # Contribution
 

@@ -310,6 +310,14 @@ func (mal *unifiAddrList) updateFirewall(ctx context.Context, ipv6 bool) {
 			delete(mal.firewallGroups[ipv6], groupName)
 		}
 	}
+	log.Info().Msgf("Log Cleanup: %v", unifiLogCleanup)
+	if unifiLogCleanup {
+		log.Info().Msgf("Log cleanup enabled, will attempt to clean up bouncer audit logs")
+		err := cleanupBouncerAuditEntries(unifiHost, unifiLogCleanupUser, unifiLogCleanupPassword)
+		if err != nil {
+			log.Error().Err(err).Msg("Cleanup failed")
+		}
+	}
 }
 
 func (mal *unifiAddrList) add(decision *models.Decision) {

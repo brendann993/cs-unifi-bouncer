@@ -8,25 +8,28 @@ import (
 )
 
 var (
-	logLevel               string
-	crowdsecBouncerAPIKey  string
-	crowdsecBouncerURL     string
-	crowdsecOrigins        []string
-	crowdsecUpdateInterval string
-	unifiHost              string
-	unifiSite              string
-	unifiAPIKey            string
-	unifiUsername          string
-	unifiPassword          string
-	useIPV6                bool
-	maxGroupSize           int
-	ipv4StartRuleIndex     int
-	ipv6StartRuleIndex     int
-	skipTLSVerify          bool
-	unifiLogging           bool
-	unifiZoneSrc           []string
-	unifiZoneDst           []string
-	unifiPolicyReordering  bool
+	logLevel                string
+	crowdsecBouncerAPIKey   string
+	crowdsecBouncerURL      string
+	crowdsecOrigins         []string
+	crowdsecUpdateInterval  string
+	unifiHost               string
+	unifiSite               string
+	unifiAPIKey             string
+	unifiUsername           string
+	unifiPassword           string
+	useIPV6                 bool
+	maxGroupSize            int
+	ipv4StartRuleIndex      int
+	ipv6StartRuleIndex      int
+	skipTLSVerify           bool
+	unifiLogging            bool
+	unifiZoneSrc            []string
+	unifiZoneDst            []string
+	unifiPolicyReordering   bool
+	unifiLogCleanup         bool
+	unifiLogCleanupUser     string
+	unifiLogCleanupPassword string
 )
 
 func initConfig() {
@@ -65,6 +68,10 @@ func initConfig() {
 	viper.SetDefault("unifi_zone_dst", "Internal Vpn Hotspot")
 	viper.BindEnv("unifi_policy_reordering")
 	viper.SetDefault("unifi_policy_reordering", "false")
+	viper.BindEnv("unifi_log_cleanup")
+	viper.SetDefault("unifi_log_cleanup", "false")
+	viper.BindEnv("unifi_log_cleanup_user")
+	viper.BindEnv("unifi_log_cleanup_password")
 
 	logLevel = viper.GetString("log_level")
 	level, err := zerolog.ParseLevel(logLevel)
@@ -113,4 +120,11 @@ func initConfig() {
 	unifiZoneDst = viper.GetStringSlice("unifi_zone_dst")
 
 	unifiPolicyReordering = viper.GetBool("unifi_policy_reordering")
+	unifiLogCleanup = viper.GetBool("unifi_log_cleanup")
+	unifiLogCleanupUser = viper.GetString("unifi_log_cleanup_user")
+	unifiLogCleanupPassword = viper.GetString("unifi_log_cleanup_password")
+	if unifiLogCleanup && (unifiLogCleanupUser == "" && unifiLogCleanupPassword == "") {
+		log.Fatal().Msg("Unifi log cleanup is enabled but username/password is not set")
+	}
+
 }

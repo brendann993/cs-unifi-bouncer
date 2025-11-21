@@ -27,15 +27,15 @@ type ZoneCache struct {
 }
 
 type unifiAddrList struct {
-	c                      unifi.Client
-	blockedAddresses       map[bool]map[string]bool
-	firewallGroups         map[bool]map[string]string
-	firewallRule           map[bool]map[string]FirewallRuleCache
-	firewallZonePolicy     map[bool]map[string]FirewallZonePolicyCache
-	modified               bool
-	isZoneBased            bool
-	firewallZones          map[string]ZoneCache
-	initialReorderingDone  bool
+	c                     unifi.Client
+	blockedAddresses      map[bool]map[string]bool
+	firewallGroups        map[bool]map[string]string
+	firewallRule          map[bool]map[string]FirewallRuleCache
+	firewallZonePolicy    map[bool]map[string]FirewallZonePolicyCache
+	modified              bool
+	isZoneBased           bool
+	firewallZones         map[string]ZoneCache
+	initialReorderingDone bool
 }
 
 // This variable is set by the build process with ldflags
@@ -95,6 +95,7 @@ func main() {
 				if useIPV6 {
 					mal.updateFirewall(ctx, true)
 				}
+
 				mal.modified = false
 			}
 		}
